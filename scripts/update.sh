@@ -58,7 +58,8 @@ fi
 
 [[ -d "$app" ]] && mv "$app" "$download/vanha.app"
 ditto "$download/Litteroi.app" "$app"
-# launchd starts the new watcher once the old one exits; the first install registers it.
+# launchd starts the new watcher once the old one exits; --register-watcher registers it on a Mac
+# where it never ran, and again when the new app is signed another way than the old one.
 pkill -x LitteroiWatcher
 "$app/Contents/MacOS/Litteroi" --register-watcher
 echo "Litteroi päivitetty: $(gh release view "$tag" --json name --jq .name)"

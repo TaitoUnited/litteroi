@@ -10,7 +10,7 @@ struct LitteroiApp: App {
     /// call watcher without opening the recording window.
     init() {
         if CommandLine.arguments.contains("--register-watcher") {
-            AppDelegate.registerCallWatcher()
+            AppDelegate.registerCallWatcher(afterInstall: true)
             exit(0)
         }
     }
@@ -72,15 +72,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     /// The call watcher inside the app bundle is a launch agent from the install or the first launch
     /// on: it starts at login, and launchd starts it again whenever it exits, after an update too.
-    /// It is registered once, so turning it off in the login items settings sticks.
-    static func registerCallWatcher() {
+    /// It is registered once, so turning it off in the login items settings sticks; an install
+    /// registers a watcher that is on again.
+    static func registerCallWatcher(afterInstall: Bool = false) {
         let registered = "callWatcherRegistered"
-        guard !UserDefaults.standard.bool(forKey: registered) else { return }
+        let watcher = SMAppService.agent(plistName: "fi.taitounited.litteroi.watcher.plist")
         do {
-            try SMAppService.agent(plistName: "fi.taitounited.litteroi.watcher.plist").register()
+            if afterInstall, watcher.status == .enabled {
+                try registerAgain(watcher)
+                return
+            }
+            guard !UserDefaults.standard.bool(forKey: registered) else { return }
+            try watcher.register()
             UserDefaults.standard.set(true, forKey: registered)
         } catch {
             NSLog("Litteroi: call watcher not registered: \(error)")
+        }
+    }
+
+    /// launchd keeps the signature of the app that registered the watcher and refuses one signed
+    /// another way, as when a release replaces a local build. About 10 s after a registration it
+    /// has taken the new signature, and registering again then starts the watcher.
+    private static func registerAgain(_ watcher: SMAppService) throws {
+        for _ in 1...3 {
+            try watcher.unregister()
+            try watcher.register()
+            Thread.sleep(forTimeInterval: 3)
+            if !NSRunningApplication.runningApplications(withBundleIdentifier: "fi.taitounited.litteroi.watcher").isEmpty {
+                return
+            }
+            Thread.sleep(forTimeInterval: 12)
         }
     }
 }

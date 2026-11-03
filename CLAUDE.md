@@ -23,7 +23,8 @@ minutes, with names hidden first. [docs/design.md](docs/design.md) holds the dec
   so Spotlight finds it with "litteroi". The app holds `litteroi-cli` in `Contents/MacOS`. Check
   first that `pgrep -x Litteroi` finds no recording in progress. Then `pkill -x LitteroiWatcher`
   has launchd start the new watcher, and `~/Applications/Litteroi.app/Contents/MacOS/Litteroi
-  --register-watcher` registers it on a Mac where it never ran, without recording.
+  --register-watcher` registers it on a Mac where it never ran, without recording, and again
+  when the new build is signed another way, such as a local build over a release.
 - Release: `scripts/release.sh` publishes the GitHub release `litteroi-<build>` of ai-library,
   the build being the number of commits that touched `litteroi/`. It holds `Litteroi.zip`, signed
   with Developer ID, notarized and stapled, which `scripts/update.sh` installs. It runs only on a

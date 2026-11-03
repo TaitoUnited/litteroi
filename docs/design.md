@@ -46,6 +46,11 @@
   Items & Extensions sticks. Registering only on the first launch would have kept the icon away
   until the first recording. `KeepAlive` has launchd start it again whenever it exits, after a
   crash or an update too; a login item would stay down until the next login.
+- launchd keeps the signature of the app that registered the watcher. When the first release,
+  signed with Developer ID, replaced a local build signed with a development certificate, launchd
+  refused to start the watcher (`needs LWCR update`, exit 78) until it was registered again about
+  10 s after the first try. So `--register-watcher` registers a watcher that is on again and
+  retries until it runs, which takes about 18 s after such a switch and 3 s otherwise.
 - Every 2 s it reads which processes use the mic (`kAudioHardwarePropertyProcessObjectList`,
   `kAudioProcessPropertyIsRunningInput`; no permission needed). Polling, because change
   listeners are reported unreliable.
