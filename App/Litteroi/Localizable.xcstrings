@@ -1,0 +1,116 @@
+{
+  "sourceLanguage": "fi",
+  "strings": {
+    "Avaa mikrofoniasetukset": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open microphone settings"
+          }
+        }
+      }
+    },
+    "Cmd+W tai Control-Optio-L tallentaa. Litteroi Claude Codessa: litteroi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cmd+W or Control-Option-L saves. Transcribe in Claude Code: litteroi"
+          }
+        }
+      }
+    },
+    "Ei nauhoiteta": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not recording"
+          }
+        }
+      }
+    },
+    "Kerro osallistujille, että palaveri nauhoitetaan ja litteroidaan.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tell the participants that the meeting is recorded and transcribed."
+          }
+        }
+      }
+    },
+    "Lopeta ja tallenna": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop and save"
+          }
+        }
+      }
+    },
+    "Mikrofoni": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone"
+          }
+        }
+      }
+    },
+    "Mikrofonin käyttö on estetty. Salli se Litteroille järjestelmän asetuksista ja avaa Litteroi uudelleen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone access is blocked. Allow it for Litteroi in System Settings and open Litteroi again."
+          }
+        }
+      }
+    },
+    "Nauhoitetaan": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording"
+          }
+        }
+      }
+    },
+    "Nauhoitus ei käynnistynyt: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording did not start: %@"
+          }
+        }
+      }
+    },
+    "Puhelun ääni": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Call audio"
+          }
+        }
+      }
+    },
+    "Puhelun ääntä ei nauhoiteta: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Call audio is not recorded: %@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

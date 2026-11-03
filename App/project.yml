@@ -1,0 +1,116 @@
+name: Litteroi
+options:
+  bundleIdPrefix: fi.taitounited
+  developmentLanguage: fi
+  deploymentTarget:
+    macOS: "14.2"
+packages:
+  LitteroiPackage:
+    path: ..
+  ArgumentParser:
+    url: https://github.com/apple/swift-argument-parser.git
+    from: 1.3.0
+targets:
+  Litteroi:
+    type: application
+    platform: macOS
+    sources:
+      - path: Litteroi
+      - path: Shared/AppIcon.icon
+        buildPhase: resources
+      - path: LaunchAgents/fi.taitounited.litteroi.watcher.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchAgents
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_NAME: Litteroi
+        PRODUCT_BUNDLE_IDENTIFIER: fi.taitounited.litteroi
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        ENABLE_HARDENED_RUNTIME: YES
+    info:
+      path: Litteroi/Info.plist
+      properties:
+        CFBundleDisplayName: Litteroi
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: fi
+        CFBundleLocalizations: [fi, en]
+        LSApplicationCategoryType: public.app-category.productivity
+        NSMicrophoneUsageDescription: Litteroi nauhoittaa palaverin mikrofonista. Litterointi tehdään tällä Macilla.
+        NSAudioCaptureUsageDescription: Litteroi nauhoittaa puhelun äänen (Teams, Meet, Slack). Litterointi tehdään tällä Macilla.
+    entitlements:
+      path: Litteroi/Litteroi.entitlements
+      properties:
+        com.apple.security.device.audio-input: true
+    dependencies:
+      - package: LitteroiPackage
+        product: LitteroiCore
+      - target: LitteroiWatcher
+        embed: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/LoginItems
+      - target: litteroi-cli
+        embed: true
+        copy:
+          destination: executables
+  LitteroiWatcher:
+    type: application
+    platform: macOS
+    sources:
+      - path: LitteroiWatcher
+      - path: Shared/AppIcon.icon
+        buildPhase: resources
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_NAME: LitteroiWatcher
+        PRODUCT_BUNDLE_IDENTIFIER: fi.taitounited.litteroi.watcher
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+    info:
+      path: LitteroiWatcher/Info.plist
+      properties:
+        CFBundleDisplayName: Litteroi-seuranta
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: fi
+        CFBundleLocalizations: [fi, en]
+        LSUIElement: true
+    dependencies:
+      - package: LitteroiPackage
+        product: LitteroiWatch
+      - package: LitteroiPackage
+        product: LitteroiMeetings
+  litteroi-cli:
+    type: tool
+    platform: macOS
+    sources:
+      - path: ../Sources/LitteroiCLI
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    settings:
+      base:
+        PRODUCT_NAME: litteroi-cli
+        SWIFT_VERSION: "5.0"
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: LitteroiPackage
+        product: LitteroiCore
+      - package: ArgumentParser

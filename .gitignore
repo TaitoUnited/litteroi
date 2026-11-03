@@ -3,3 +3,7 @@
 *.xcodeproj/
 xcuserdata/
 .DS_Store
+App/Signing.local.xcconfig
+App/Litteroi/Info.plist
+App/Litteroi/Litteroi.entitlements
+App/LitteroiWatcher/Info.plist

@@ -1,0 +1,40 @@
+{
+  "sourceLanguage": "fi",
+  "strings": {
+    "NSAudioCaptureUsageDescription": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroi records the call audio (Teams, Meet, Slack). The transcription is done on this Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Litteroi nauhoittaa puhelun äänen (Teams, Meet, Slack). Litterointi tehdään tällä Macilla."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroi records the meeting from the microphone. The transcription is done on this Mac."
+          }
+        },
+        "fi": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Litteroi nauhoittaa palaverin mikrofonista. Litterointi tehdään tällä Macilla."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

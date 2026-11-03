@@ -1,0 +1,8 @@
+// Ad-hoc signing works on any Mac, but macOS then asks for the microphone again after every
+// build. Signing.local.xcconfig, which git ignores, can name a development certificate instead:
+//   CODE_SIGN_IDENTITY = Apple Development
+//   DEVELOPMENT_TEAM = <team id>
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+#include? "Signing.local.xcconfig"

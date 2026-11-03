@@ -1,0 +1,196 @@
+{
+  "sourceLanguage": "fi",
+  "strings": {
+    "%lld nauhoitusta litteroimatta": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld recording not transcribed"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld recordings not transcribed"
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld nauhoitus litteroimatta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld nauhoitusta litteroimatta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Avaa Litteroi-kansio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Litteroi folder"
+          }
+        }
+      }
+    },
+    "Control-Optio-L": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control-Option-L"
+          }
+        }
+      }
+    },
+    "Control-Optio-L aloittaa tai lopettaa nauhoituksen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control-Option-L starts or stops recording"
+          }
+        }
+      }
+    },
+    "Ei nyt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not now"
+          }
+        }
+      }
+    },
+    "Litteroi nauhoittaa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroi is recording"
+          }
+        }
+      }
+    },
+    "Litteroi nauhoittaa yhä. Lopetetaanko ja tallennetaan?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Litteroi is still recording. Stop and save it?"
+          }
+        }
+      }
+    },
+    "Litteroidaanko? Kerro osallistujille ennen nauhoitusta.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe it? Tell the participants before recording."
+          }
+        }
+      }
+    },
+    "Lopeta ja tallenna": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop and save"
+          }
+        }
+      }
+    },
+    "Nauhoita": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record"
+          }
+        }
+      }
+    },
+    "Nauhoita Litteroilla": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record with Litteroi"
+          }
+        }
+      }
+    },
+    "Näytä nauhoitus": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show recording"
+          }
+        }
+      }
+    },
+    "Odottaa palaveria": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for a meeting"
+          }
+        }
+      }
+    },
+    "Palaveri alkoi (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting started (%@)"
+          }
+        }
+      }
+    },
+    "Palaveri käynnissä (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting on (%@)"
+          }
+        }
+      }
+    },
+    "Palaveri päättyi (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting ended (%@)"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -1,5 +1,10 @@
 import Foundation
 
+/// The languages a meeting is transcribed in, by Whisper's codes.
+public enum Language: String, Sendable {
+    case fi, en
+}
+
 public struct Utterance: Codable, Equatable, Sendable {
     public var speaker: String
     public var start: Float

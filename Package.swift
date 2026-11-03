@@ -7,6 +7,8 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "LitteroiCore", targets: ["LitteroiCore"]),
+        .library(name: "LitteroiMeetings", targets: ["LitteroiMeetings"]),
+        .library(name: "LitteroiWatch", targets: ["LitteroiWatch"]),
         .executable(name: "litteroi-cli", targets: ["LitteroiCLI"]),
     ],
     dependencies: [
@@ -17,6 +19,8 @@ let package = Package(
         .target(
             name: "LitteroiCore",
             dependencies: [
+                "CSpeexDSP",
+                "LitteroiMeetings",
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
                 .product(name: "SpeakerKit", package: "argmax-oss-swift"),
             ]
@@ -28,7 +32,19 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
+        .target(
+            name: "CSpeexDSP",
+            exclude: ["COPYING"],
+            cSettings: [
+                .define("FLOATING_POINT"),
+                .define("USE_SMALLFT"),
+                .define("EXPORT", to: ""),
+            ]
+        ),
+        .target(name: "LitteroiMeetings"),
+        .target(name: "LitteroiWatch"),
         .testTarget(name: "LitteroiCoreTests", dependencies: ["LitteroiCore"]),
+        .testTarget(name: "LitteroiWatchTests", dependencies: ["LitteroiWatch"]),
     ],
     swiftLanguageModes: [.v5]
 )
