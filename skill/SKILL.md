@@ -13,14 +13,14 @@ the screen videos never leave the Mac and no session opens them; the transcript 
 
 The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
 
-1. Bring Litteroi up to date. The script pulls ai-library's main for this skill and installs the
-   newest Litteroi release from GitHub when it is newer than the installed app, which holds the
-   tool. It leaves a checkout alone that is on another branch or has changes of its own in the
-   folder, and never replaces the app while it records. Tell the user in a line what it printed.
+1. Bring Litteroi up to date. The script pulls the Litteroi repository's main for this skill and
+   installs the newest Litteroi release from GitHub when it is newer than the installed app, which
+   holds the tool. It leaves a checkout alone that is on another branch or has changes of its own in
+   the folder, and never replaces the app while it records. Tell the user in a line what it printed.
    When it fails, go on with the tool already installed:
 
    ```bash
-   ~/Projects/ai-library/litteroi/scripts/update.sh
+   ~/Projects/litteroi/scripts/update.sh
    ```
 
 2. List the meetings. Each line is a stage, `litteroimatta` (recorded), `litteroitu` (transcribed)

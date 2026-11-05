@@ -26,11 +26,10 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   has launchd start the new watcher, and `~/Applications/Litteroi.app/Contents/MacOS/Litteroi
   --register-watcher` registers it on a Mac where it never ran, without recording, and again
   when the new build is signed another way, such as a local build over a release.
-- Release: `scripts/release.sh` publishes the GitHub release `litteroi-<build>` of ai-library,
-  the build being the number of commits that touched `litteroi/`. It holds `Litteroi.zip`, signed
-  with Developer ID, notarized and stapled, which `scripts/update.sh` installs. It runs only on a
-  pushed main with no local changes in `litteroi/`, and needs Xcode signed in to the team's account
-  and a notarytool profile named `litteroi`.
+- Release: `scripts/release.sh` publishes the GitHub release `litteroi-<build>`, the build being the
+  number of commits on main. It holds `Litteroi.zip`, signed with Developer ID, notarized and
+  stapled, which `scripts/update.sh` installs. It runs only on a pushed main with no local changes,
+  and needs Xcode signed in to the team's account and a notarytool profile named `litteroi`.
 - Signing: `App/Signing.xcconfig` signs ad hoc; the untracked `App/Signing.local.xcconfig` names
   a development certificate, so macOS keeps the microphone permission across builds.
 - The recorders need the microphone, system audio recording and screen recording permissions,
@@ -52,11 +51,11 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   `litteroi-cli pdf <meeting folder> <folder>` writes its corrected transcript as an A4 PDF to
   share, `--minutes` with the minutes.
 - Skill: it runs `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli` and is installed with
-  `ln -s ~/Projects/ai-library/litteroi/skill ~/.claude/skills/litteroi`.
+  `ln -s ~/Projects/litteroi/skill ~/.claude/skills/litteroi`.
 - Update: `scripts/update.sh`, which the skill runs first, pulls main and installs the newest
   `litteroi-` release with `gh` when its build is above the installed app's `CFBundleVersion`,
   after Gatekeeper and the team ID check out. It skips a checkout on another branch or with local
-  changes in `litteroi/`, so in a working checkout build and install by hand.
+  changes, so in a working checkout build and install by hand.
 - Models download on first run into `~/Library/Application Support/Litteroi/models`
   (Whisper large-v3 about 3.1 GB, SpeakerKit models about 33 MB).
 - Test audio lives outside the repo in `~/Downloads/litteroi-test-audio`: `podcasts/` (full

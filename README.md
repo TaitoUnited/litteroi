@@ -34,10 +34,14 @@ Requires macOS 14.2 or later on Apple silicon and the GitHub CLI `gh`, signed in
 that can read this repository. Building it needs Xcode and XcodeGen. The first transcription
 downloads about 3.1 GB of models.
 
+Litteroi tells no one else in the call that it records. Tell the others before you record, and
+share the transcript only where they are fine with it: some countries require everyone's consent
+to record a call.
+
 ## Getting started
 
 Paste this into Claude Code:
 
 ```text
-clone git@github.com:TaitoUnited/ai-library.git into ~/Projects/ai-library unless it is there already, then in its litteroi folder read CLAUDE.md, run scripts/update.sh to install the app to ~/Applications so i can open it with cmd space litteroi, then install the litteroi skill
+clone TaitoUnited/litteroi with gh into ~/Projects/litteroi unless it is there already, then read its CLAUDE.md, run scripts/update.sh to install the app to ~/Applications so i can open it with cmd space litteroi, then install the litteroi skill
 ```

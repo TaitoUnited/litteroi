@@ -1,22 +1,21 @@
 #!/bin/zsh
-# Brings Litteroi up to date: pulls ai-library's main for the skill, then installs the newest
-# litteroi-<build> release of the app, with litteroi-cli inside it, when it is newer than the
-# installed one. A checkout on another branch, or with changes of its own in the folder, is left
-# alone, and so is the app a developer built from it.
+# Brings Litteroi up to date: pulls main for the skill, then installs the newest litteroi-<build>
+# release of the app, with litteroi-cli inside it, when it is newer than the installed one. A
+# checkout on another branch, or with changes of its own, is left alone, and so is the app a
+# developer built from it.
 set -uo pipefail
-litteroi="${0:A:h:h}"
-repo="${litteroi:h}"
+repo="${0:A:h:h}"
 app=~/Applications/Litteroi.app
 team=VXSNWDR5MY
-cd "$litteroi" || exit 1
+cd "$repo" || exit 1
 
 branch=$(git -C "$repo" branch --show-current)
 if [[ "$branch" != main ]]; then
-  echo "Ei päivitetty: ai-library on haarassa $branch eikä mainissa."
+  echo "Ei päivitetty: Litteroin repo on haarassa $branch eikä mainissa."
   exit 0
 fi
-if [[ -n "$(git -C "$repo" status --porcelain -- litteroi)" ]]; then
-  echo "Ei päivitetty: litteroi-kansiossa on omia muutoksia."
+if [[ -n "$(git -C "$repo" status --porcelain)" ]]; then
+  echo "Ei päivitetty: Litteroin repossa on omia muutoksia."
   exit 0
 fi
 if ! GIT_TERMINAL_PROMPT=0 git -C "$repo" pull --ff-only --quiet; then

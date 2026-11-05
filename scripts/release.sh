@@ -1,21 +1,22 @@
 #!/bin/zsh
-# Publishes Litteroi as the GitHub release litteroi-<build> of ai-library, where the build is the
-# number of commits that touched the litteroi folder. The app, with litteroi-cli inside it, is
-# signed with Developer ID and notarized as Litteroi.zip, which scripts/update.sh installs and
-# which a Mac without the skill gets by hand. Needs App/Signing.local.xcconfig with the team, Xcode
-# signed in to that team's account and a notarytool profile named litteroi.
+# Publishes Litteroi as the GitHub release litteroi-<build>, where the build is the number of
+# commits on main, which counts on from the builds released while Litteroi lived in ai-library. The
+# app, with litteroi-cli inside it, is signed with Developer ID and notarized as Litteroi.zip, which
+# scripts/update.sh installs and which a Mac without the skill gets by hand. Needs
+# App/Signing.local.xcconfig with the team, Xcode signed in to that team's account and a notarytool
+# profile named litteroi.
 set -euo pipefail
 cd "${0:A:h}/.."
 
 if [[ "$(git branch --show-current)" != main || -n "$(git status --porcelain -- .)" ]] ||
   ! git pull --ff-only --quiet || [[ -n "$(git log --oneline origin/main..HEAD)" ]]; then
-  echo "Julkaistaan vain pushattu main, jonka litteroi-kansiossa ei ole omia muutoksia."
+  echo "Julkaistaan vain pushattu main, jossa ei ole omia muutoksia."
   exit 1
 fi
 build=$(git rev-list --count HEAD -- .)
 tag="litteroi-$build"
 if gh release view "$tag" >/dev/null 2>&1; then
-  echo "$tag on jo julkaistu, eikä litteroi-kansio ole muuttunut sen jälkeen."
+  echo "$tag on jo julkaistu, eikä repo ole muuttunut sen jälkeen."
   exit 0
 fi
 previous=$(gh release list --exclude-drafts --limit 100 --json tagName \

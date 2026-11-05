@@ -243,11 +243,11 @@
 
 ## Distribution
 
-- `scripts/release.sh` publishes the GitHub release `litteroi-<build>` of ai-library: the app,
+- `scripts/release.sh` publishes the GitHub release `litteroi-<build>`: the app,
   signed with Developer ID, notarized and stapled, as `Litteroi.zip`. It is signed with Akira
   Taguchi's own developer account, so macOS names Akira Samuel Taguchi as the developer; a Taito
   United Oy account would need a D-U-N-S number and its account holder.
-- The releases are as private as the repository: everyone who can read ai-library can download
+- The releases are as private as the repository: everyone who can read the repository can download
   them, which includes its outside collaborators, and nobody else. They hold the app and the
   subjects of the commits since the last release, never audio, transcripts or names. Apple's
   notary service receives each app to scan it.
@@ -257,7 +257,8 @@
   main for the skill and installs the newest release with `gh` when its build is above the
   installed app's. Everyone who uses Litteroi already needs this repository and Claude Code for
   the transcription, so the updates need no hosting or IT, only `gh` signed in to an account
-  that can read ai-library.
+  that can read the repository. Litteroi lived in `TaitoUnited/ai-library` until 5.11.2026, whose
+  releases litteroi-2 and litteroi-3 hold the builds before the move.
 - Releases rather than a build on each Mac: macOS keeps the microphone and system audio
   permissions for the app's code identity. An app built on a Mac without its own development
   certificate is signed ad hoc, whose identity is the hash of that build, so every update asked
