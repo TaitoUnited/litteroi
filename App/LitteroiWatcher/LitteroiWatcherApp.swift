@@ -12,7 +12,7 @@ struct LitteroiWatcherApp: App {
     /// The icon shows only while meetings wait for the litteroi skill in Claude Code, until
     /// Control-Option-H shows or hides it for good.
     var body: some Scene {
-        MenuBarExtra(isInserted: Binding(get: { watcher.showsIcon }, set: { watcher.iconShown = $0 })) {
+        MenuBarExtra(isInserted: Binding(get: { watcher.showsIcon }, set: { if $0 != watcher.showsIcon { watcher.iconShown = $0 } })) {
             Text(watcher.status)
             Text("\(watcher.unfinished) palaveria viimeistelemättä")
             Text("Kirjoita litteroi Claude Codessa")
