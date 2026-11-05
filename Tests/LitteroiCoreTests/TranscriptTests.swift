@@ -25,8 +25,9 @@ import WhisperKit
 @Test func labelsSpeakersInTheMeetingsLanguage() {
     #expect(SpeakerLabels.name(for: .speakerId(1), in: .en) == "Speaker 2")
     #expect(SpeakerLabels.name(for: .multiple([0, 1]), in: .en) == "Overlapping")
-    #expect(SpeakerLabels.me(in: .en) == "Me")
-    #expect(SpeakerLabels.me(in: .fi) == "Minä")
+    #expect(SpeakerLabels.me(in: .fi, fullName: "Anna-Liisa Mäki") == "Anna-Liisa")
+    #expect(SpeakerLabels.me(in: .en, fullName: "") == "Me")
+    #expect(SpeakerLabels.me(in: .fi, fullName: "") == "Minä")
 }
 
 @Test func takesTheLanguageMostOfTheSpeechIsIn() {

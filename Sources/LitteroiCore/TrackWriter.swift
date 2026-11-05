@@ -63,6 +63,20 @@ public final class TrackWriter: @unchecked Sendable {
         latestLevel.withLock { $0 = level }
     }
 
+    /// Appends what a Core Audio IO proc delivered in `format`. A buffer list laid out otherwise,
+    /// as while a device changes format, is skipped: read as `format`, it would run past its memory.
+    public func append(_ input: UnsafePointer<AudioBufferList>, format: AVAudioFormat) throws {
+        let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
+        let channelsPerBuffer = format.isInterleaved ? format.channelCount : 1
+        let bytesPerFrame = format.streamDescription.pointee.mBytesPerFrame
+        guard buffers.count == Int(format.channelCount / channelsPerBuffer), bytesPerFrame > 0,
+              let size = buffers.first?.mDataByteSize, size % bytesPerFrame == 0,
+              buffers.allSatisfy({ $0.mData != nil && $0.mDataByteSize == size && $0.mNumberChannels == channelsPerBuffer }),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: input, deallocator: nil)
+        else { return }
+        try append(buffer)
+    }
+
     public func close() {
         if #available(macOS 15, *) {
             file?.close()

@@ -6,10 +6,11 @@ both from `argmaxinc/argmax-oss-swift`. `litteroi-cli` runs the pipeline on audi
 `LitteroiMeetings` knows the meeting folders and deletes old audio. `LitteroiWatch` tells from Core
 Audio when a call app holds the mic. `CSpeexDSP` is SpeexDSP 1.2.1's echo canceller, vendored from
 github.com/xiph/speexdsp under its BSD licence. `App/` is the Mac app, which only records, and
-`LitteroiWatcher`, a launch agent inside it that sits in the menu bar and offers to record when a
-call starts and to stop when it ends. `skill/` is the `litteroi` skill for Claude Code, which
-transcribes the recordings and finishes them with Claude: corrected transcript, speaker guesses and
-minutes, with names hidden first. [docs/design.md](docs/design.md) holds the decisions behind it.
+`LitteroiWatcher`, a launch agent inside it that offers to record when a call starts and to stop
+when it ends, with a menu bar icon while meetings wait for the skill. `skill/` is the `litteroi`
+skill for Claude Code, which transcribes the recordings and finishes them with Claude: it asks the
+user who each speaker is, then writes the corrected transcript and the minutes.
+[docs/design.md](docs/design.md) holds the decisions behind it.
 
 ## Commands
 
@@ -32,18 +33,24 @@ minutes, with names hidden first. [docs/design.md](docs/design.md) holds the dec
   and a notarytool profile named `litteroi`.
 - Signing: `App/Signing.xcconfig` signs ad hoc; the untracked `App/Signing.local.xcconfig` names
   a development certificate, so macOS keeps the microphone permission across builds.
-- The recorders need the microphone and system audio recording permissions, so the app is
-  launched by a person, not from a session.
-- Transcribe: `.build/debug/litteroi-cli <mic.wav> [--call <call.wav>] --output <folder>`
-  writes `transcript.md` and `transcript.json`. Without `--call` the mic track is split by
-  speaker; with it the mic track is "Minä" and only the call track is split. Given a meeting
-  folder under `~/Litteroi` instead, it transcribes that meeting's tracks into the folder.
-- Meetings: `litteroi-cli status` lists each meeting as `litteroimatta`, `litteroitu` or
-  `valmis`, and `litteroi-cli transcribe-pending` transcribes the `litteroimatta` ones, skipping
-  the newest while the app is recording it. `litteroi-cli pseudonymize <folder>` hides the
-  names of `~/Litteroi/nimet.txt` into `claude/transcript.md` and keeps the key in
-  `avain.json`; `litteroi-cli restore <folder>` puts them back into the files Claude wrote in
-  `claude/` and writes those into the meeting folder.
+- The recorders need the microphone, system audio recording and screen recording permissions,
+  so the app is launched by a person, not from a session.
+- Transcribe: `.build/debug/litteroi-cli <mic.wav> [--call <call.wav>] --output <folder>` writes
+  `transcript.md` and `transcript.json`. Without `--call` the mic track is split by speaker; with it
+  the mic track carries the user's first name, from macOS, and only the call track is split. Given a
+  meeting folder under `~/Litteroi` instead, it transcribes that meeting's tracks into the folder.
+- Meetings: `litteroi-cli status` lists each meeting as `litteroimatta`, `litteroitu` or `valmis`,
+  the one being recorded as `nauhoitetaan (ääni)` or `nauhoitetaan (ääni ja video)`, then its folder
+  and the meeting's name from `nimi.txt` when it has one, and `litteroi-cli transcribe-pending`
+  transcribes the `litteroimatta` ones, skipping the newest while the app is recording it. Both
+  transcribe commands also read the names on the screen videos into `nimet-ruudulla.txt`, and
+  `litteroi-cli names <meeting folder>` reads them again. `litteroi-cli page <meeting folder>`
+  writes the meeting's `palaveri.html`, whose timestamps play the meeting in Firefox and whose form
+  copies the answers to `kysymykset.md` as a prompt, and prints its `file://` address. `litteroi-cli
+  export <meeting folder> <folder>` writes a finished meeting's minutes and corrected transcript as
+  `<meeting>.md` into the folder, which the skill points at the meeting's Claude Code project.
+  `litteroi-cli pdf <meeting folder> <folder>` writes its corrected transcript as an A4 PDF to
+  share, `--minutes` with the minutes.
 - Skill: it runs `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli` and is installed with
   `ln -s ~/Projects/ai-library/litteroi/skill ~/.claude/skills/litteroi`.
 - Update: `scripts/update.sh`, which the skill runs first, pulls main and installs the newest
@@ -61,10 +68,10 @@ minutes, with names hidden first. [docs/design.md](docs/design.md) holds the dec
   the GAIK benchmark (github.com/GAIK-project/finnish-asr). Each window of speech is transcribed in
   Finnish or English, whichever Whisper hears in it, so a meeting may switch between the two.
   Whisper names a window's language from how it starts, so windows are cut at speaker turns.
-- Audio never leaves the Mac, and the app and `litteroi-cli` call no cloud API. Text reaches
-  Claude only through the skill, from a meeting's `claude/` folder with the listed names hidden:
-  a session never reads a meeting's own transcript, its `avain.json`, the restored `korjattu.md`
-  and `muistio.md`, or `~/Litteroi/nimet.txt`.
+- Audio and screen videos never leave the Mac, and the app and `litteroi-cli` call no cloud API.
+  Text reaches Claude only through the skill: a meeting's transcript, names included, the names
+  `litteroi-cli` reads from the screen videos on the Mac, and the glossary. No session opens the
+  audio or the screen videos.
 - Models, recordings and transcripts never go under `~/Documents`, which iCloud may sync.
   WhisperKit defaults to `~/Documents/huggingface`, so always pass `downloadBase`.
 - User-facing text is written in Finnish, and every string gets its English in the target's

@@ -44,6 +44,7 @@ targets:
         CFBundleDevelopmentRegion: fi
         CFBundleLocalizations: [fi, en]
         LSApplicationCategoryType: public.app-category.productivity
+        LSUIElement: true
         NSMicrophoneUsageDescription: Litteroi nauhoittaa palaverin mikrofonista. Litterointi tehdään tällä Macilla.
         NSAudioCaptureUsageDescription: Litteroi nauhoittaa puhelun äänen (Teams, Meet, Slack). Litterointi tehdään tällä Macilla.
     entitlements:

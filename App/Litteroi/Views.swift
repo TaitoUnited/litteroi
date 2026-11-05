@@ -29,20 +29,21 @@ struct RecordingView: View {
             if let error = model.callError {
                 Text(error).font(.footnote).foregroundStyle(.orange)
             }
-
-            Text("Kerro osallistujille, että palaveri nauhoitetaan ja litteroidaan.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            if let error = model.screenError {
+                Text(error).font(.footnote).foregroundStyle(.orange)
+                Button("Avaa näytön nauhoituksen asetukset") {
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+                }
+            }
 
             HStack {
-                Text("Cmd+W tai Control-Optio-L tallentaa. Litteroi Claude Codessa: litteroi")
+                Text("Control-Optio-T tai Cmd+Q tallentaa. Litteroi Claude Codessa: litteroi")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Lopeta ja tallenna") {
-                    NSApp.keyWindow?.performClose(nil)
+                    NSApp.terminate(nil)
                 }
-                .keyboardShortcut("w", modifiers: .command)
             }
         }
         .padding(20)

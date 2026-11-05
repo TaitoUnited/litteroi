@@ -4,8 +4,9 @@ import WhisperKit
 
 /// Labels in the meeting's language, since Claude and the user read them in the transcript.
 enum SpeakerLabels {
-    static func me(in language: Language) -> String {
-        language == .fi ? "Minä" : "Me"
+    /// The user's own track carries their first name, as the user asked, in either language.
+    static func me(in language: Language, fullName: String = NSFullUserName()) -> String {
+        fullName.split(separator: " ").first.map(String.init) ?? (language == .fi ? "Minä" : "Me")
     }
 
     static func name(for speaker: SpeakerInfo, in language: Language) -> String {

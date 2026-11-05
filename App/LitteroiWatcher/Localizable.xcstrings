@@ -1,7 +1,7 @@
 {
   "sourceLanguage": "fi",
   "strings": {
-    "%lld nauhoitusta litteroimatta": {
+    "%lld palaveria viimeistelemättä": {
       "localizations": {
         "en": {
           "variations": {
@@ -9,13 +9,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld recording not transcribed"
+                  "value": "%lld meeting not finished"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld recordings not transcribed"
+                  "value": "%lld meetings not finished"
                 }
               }
             }
@@ -27,13 +27,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld nauhoitus litteroimatta"
+                  "value": "%lld palaveri viimeistelemättä"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld nauhoitusta litteroimatta"
+                  "value": "%lld palaveria viimeistelemättä"
                 }
               }
             }
@@ -51,22 +51,42 @@
         }
       }
     },
-    "Control-Optio-L": {
+    "Control-Optio-H piilottaa tai näyttää tämän kuvakkeen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Control-Option-L"
+            "value": "Control-Option-H hides or shows this icon"
           }
         }
       }
     },
-    "Control-Optio-L aloittaa tai lopettaa nauhoituksen": {
+    "Control-Optio-T aloittaa tai lopettaa nauhoituksen": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Control-Option-L starts or stops recording"
+            "value": "Control-Option-T starts or stops recording"
+          }
+        }
+      }
+    },
+    "Control-Optio-V nauhoittaa myös näytön, Control-Optio-A vain äänen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control-Option-V records the screen too, Control-Option-A audio only"
+          }
+        }
+      }
+    },
+    "Ei": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No"
           }
         }
       }
@@ -81,6 +101,26 @@
         }
       }
     },
+    "Kirjoita litteroi Claude Codessa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type litteroi in Claude Code"
+          }
+        }
+      }
+    },
+    "Kuva": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visual"
+          }
+        }
+      }
+    },
     "Litteroi nauhoittaa": {
       "localizations": {
         "en": {
@@ -91,22 +131,32 @@
         }
       }
     },
-    "Litteroi nauhoittaa yhä. Lopetetaanko ja tallennetaan?": {
+    "Litteroi nauhoittaa ääntä": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Litteroi is still recording. Stop and save it?"
+            "value": "Litteroi is recording audio"
           }
         }
       }
     },
-    "Litteroidaanko? Kerro osallistujille ennen nauhoitusta.": {
+    "Litteroi nauhoittaa ääntä ja näyttöä": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Transcribe it? Tell the participants before recording."
+            "value": "Litteroi is recording audio and the screen"
+          }
+        }
+      }
+    },
+    "Litteroidaanko?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe?"
           }
         }
       }
@@ -121,12 +171,12 @@
         }
       }
     },
-    "Nauhoita": {
+    "Lopetetaanko litterointi?": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Record"
+            "value": "Stop transcribing?"
           }
         }
       }
@@ -137,6 +187,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Record with Litteroi"
+          }
+        }
+      }
+    },
+    "Nauhoita myös näyttö": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record the screen too"
+          }
+        }
+      }
+    },
+    "Nauhoita vain ääni": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record audio only"
           }
         }
       }
@@ -161,16 +231,6 @@
         }
       }
     },
-    "Palaveri alkoi (%@)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meeting started (%@)"
-          }
-        }
-      }
-    },
     "Palaveri käynnissä (%@)": {
       "localizations": {
         "en": {
@@ -187,6 +247,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meeting ended (%@)"
+          }
+        }
+      }
+    },
+    "Ääni": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio"
           }
         }
       }

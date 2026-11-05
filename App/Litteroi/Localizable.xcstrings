@@ -11,12 +11,22 @@
         }
       }
     },
-    "Cmd+W tai Control-Optio-L tallentaa. Litteroi Claude Codessa: litteroi": {
+    "Avaa näytön nauhoituksen asetukset": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cmd+W or Control-Option-L saves. Transcribe in Claude Code: litteroi"
+            "value": "Open screen recording settings"
+          }
+        }
+      }
+    },
+    "Control-Optio-T tai Cmd+Q tallentaa. Litteroi Claude Codessa: litteroi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control-Option-T or Cmd+Q saves. Transcribe in Claude Code: litteroi"
           }
         }
       }
@@ -27,16 +37,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not recording"
-          }
-        }
-      }
-    },
-    "Kerro osallistujille, että palaveri nauhoitetaan ja litteroidaan.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tell the participants that the meeting is recorded and transcribed."
           }
         }
       }
@@ -87,6 +87,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recording did not start: %@"
+          }
+        }
+      }
+    },
+    "Näyttöjä ei nauhoiteta: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screens are not recorded: %@"
           }
         }
       }

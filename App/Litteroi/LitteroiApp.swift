@@ -1,4 +1,5 @@
 import AppKit
+import LitteroiCore
 import ServiceManagement
 import SwiftUI
 
@@ -7,7 +8,7 @@ struct LitteroiApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     /// `Litteroi --register-watcher`, which scripts/update.sh runs after an install, starts the
-    /// call watcher without opening the recording window.
+    /// call watcher without recording.
     init() {
         if CommandLine.arguments.contains("--register-watcher") {
             AppDelegate.registerCallWatcher(afterInstall: true)
@@ -21,14 +22,37 @@ struct LitteroiApp: App {
     }
 }
 
-/// Opens the recording window at launch. Closing it, with Cmd+W or Cmd+Q, saves the recording
-/// and quits.
+/// Starts recording at launch. Started by the call watcher, it has no window and no Dock icon, so
+/// the meeting stays in front, and the watcher in the menu bar shows the recording and stops it.
+/// The window and the Dock icon show when the user opens Litteroi, such as from Spotlight, when
+/// something went wrong and when the watcher is not running. Quitting saves the recording.
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    private static let watcherID = "fi.taitounited.litteroi.watcher"
     private var window: NSWindow?
+    private let fromWatcher = CommandLine.arguments.contains("--from-watcher")
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(fromWatcher ? .accessory : .regular)
+    }
+
+    /// The call watcher opens the app with `--video` to record the screens too, and switches them
+    /// on and off midway with a notification.
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.registerCallWatcher()
-        openRecordingWindow()
+        for mode in [MeetingFolder.RecordingMode.audio, .audioAndVideo] {
+            DistributedNotificationCenter.default().addObserver(forName: mode.notification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { AppModel.shared.setScreens(mode == .audioAndVideo) }
+            }
+        }
+        Task {
+            await AppModel.shared.startRecording(screens: CommandLine.arguments.contains("--video"))
+            if AppModel.shared.needsAttention || !Self.watcherRunning || !fromWatcher {
+                openRecordingWindow()
+            } else if window == nil, NSApp.isActive {
+                NSApp.hide(nil)
+            }
+        }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
@@ -36,16 +60,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return false
     }
 
+    /// The screen videos are finished asynchronously, so quitting waits for them.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        MainActor.assumeIsolated { AppModel.shared.stopRecording() }
-        return .terminateNow
-    }
-
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        guard AppModel.shared.isRecording else { return .terminateNow }
+        Task {
+            await AppModel.shared.stopRecording()
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func openRecordingWindow() {
+        NSApp.setActivationPolicy(.regular)
         if window == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 380, height: 240),
@@ -59,15 +85,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.delegate = self
             window.center()
             self.window = window
-            Task { await AppModel.shared.startRecording() }
         }
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate()
     }
 
+    /// Closing the window leaves a recording going; without one there is nothing left to do.
     func windowWillClose(_ notification: Notification) {
         window = nil
-        MainActor.assumeIsolated { AppModel.shared.stopRecording() }
+        if AppModel.shared.isRecording {
+            NSApp.setActivationPolicy(.accessory)
+            NSApp.hide(nil)
+        } else {
+            NSApp.terminate(nil)
+        }
     }
 
     /// The call watcher inside the app bundle is a launch agent from the install or the first launch
@@ -98,10 +129,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             try watcher.unregister()
             try watcher.register()
             Thread.sleep(forTimeInterval: 3)
-            if !NSRunningApplication.runningApplications(withBundleIdentifier: "fi.taitounited.litteroi.watcher").isEmpty {
+            if watcherRunning {
                 return
             }
             Thread.sleep(forTimeInterval: 12)
         }
+    }
+
+    private static var watcherRunning: Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: watcherID).isEmpty
     }
 }

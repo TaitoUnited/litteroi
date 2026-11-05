@@ -3,20 +3,41 @@
 ## Recording app
 
 - A Mac app named Litteroi, so Spotlight finds it with "litteroi".
-- Opening it shows a small window (timer, mic and call levels, Lopeta ja tallenna) and starts
-  recording.
-- Cmd+W, Cmd+Q or the button saves the tracks and quits; a recording under 2 s is deleted. The
-  app only records: Whisper runs when the user types litteroi in Claude Code, so the machine is
-  busy only when they choose.
+- Opening it starts recording the audio. Opened with Cmd+Space, it shows the small window (timer,
+  mic and call levels, Lopeta ja tallenna) and a Dock icon. Started by the watcher, from
+  Control-Option-T, V or A or the prompt, it shows neither, so the meeting stays in front, as the
+  user asked: the app is an `LSUIElement` that takes the regular activation policy only while its
+  window is open. The window opens anyway when a recorder fails, when the watcher is not running,
+  and when Litteroi is opened again from Spotlight or the watcher's Näytä nauhoitus.
+- Control-Option-T, Cmd+Q or the button saves the tracks and quits; closing the window leaves the
+  recording going. A recording under 2 s is deleted. The app only records: Whisper runs when the
+  user types litteroi in Claude Code, so the machine is busy only when they choose.
 - Audio is written while recording, so a crash still leaves a usable file.
 - Two tracks: the mic (AVAudioEngine) and everything the Mac plays except Litteroi itself,
   through a Core Audio process tap (macOS 14.2+, `NSAudioCaptureUsageDescription`, "system audio
   recording" permission). A tap on call apps alone would miss a browser call whose audio process
   starts after the recording. A call track with under 10 s of sound is dropped as no call.
+- On Control-Option-V every display is recorded too, one video each, so what was shown in a meeting
+  can be looked up later: ScreenCaptureKit, H.265, up to 2 frames a second and at most 1920 points
+  wide. ScreenCaptureKit sends a frame only when the screen changes, so a slide left up costs next
+  to nothing, and the last frame lasts until the recording stops. It needs the screen recording
+  permission, which the first recording asks for; without it the audio is still recorded and the
+  window says why the screens are not.
+- A recording is audio only unless the user asks for the screens, from the start or midway:
+  Control-Option-V records the screens too and Control-Option-A only the audio again, since macOS
+  shows a purple item in the menu bar for as long as an app captures the screen, and no app can
+  hide it. The user asked for both keys, for the switch midway and for Control-Option-T and the
+  prompt to record audio only. The watcher opens the app with `--video`, or switches a recording
+  going on with a distributed notification, and each stretch of screen recording is its own
+  video, `screen-<display>-<second>.mov`, named by the second of the meeting it starts at, which
+  the page uses to show it only while it was recorded. The app writes `ääni` or `ääni ja video` to
+  `.nauhoitus` in the meeting folder while it records, so `litteroi-cli status` and the watcher's
+  menu say which. The call track needs no switch: its purple dot shares the menu bar's one privacy
+  dot with the call app's microphone and camera, which take it during a call.
 - On speakers, the mic also picks up the other participants. Before Whisper, `litteroi-cli`
   removes that echo with the call track as the reference: GCC-PHAT finds the delay between the
   two tracks every 30 s, since the recorders start apart and their clocks drift, then SpeexDSP's
-  echo canceller (vendored, BSD) subtracts the call from the mic. A "Minä" line whose words
+  echo canceller (vendored, BSD) subtracts the call from the mic. A line of the user's whose words
   mostly repeat a call line at the same time is dropped as leftover echo. With headphones no
   delay stands out and the mic track is used as recorded. `mic.caf` itself is never changed.
 - Apple's voice processing on the mic would cancel echo while recording, but it is not known to
@@ -27,9 +48,51 @@
 ## Finishing with Claude
 
 - Claude takes text, images and PDFs but no audio, so Whisper still transcribes on the Mac and
-  Claude works from its text. The `litteroi` skill fixes misheard words from context and from
-  `~/Litteroi/sanasto.txt`, guesses who each speaker is from how people address each other, and
-  writes the minutes: summary, decisions, tasks and unclear passages.
+  Claude works from its text. The `litteroi` skill rewrites each line into what the speaker
+  most likely said, from context and from `~/Litteroi/sanasto.txt`, so that `korjattu.md` reads
+  as understandable Finnish, with `[?]` after a guess and `[epäselvä]` where nothing makes
+  sense; `transcript.md` keeps Whisper's words. Fixing only the words whose right form was clear
+  left whole lines unreadable, and the user asked for understandable Finnish. A line with nothing
+  meaningful in it is left out, and a line whose speaker cannot be told is labelled Epäselvä, as
+  the user asked. It then writes the minutes: summary, decisions, tasks and unclear passages.
+- The skill writes `korjattu.md` before it asks who spoke, so the questions and the page quote
+  lines the user can read.
+- Each meeting has a name in `nimi.txt`, shown on its page, by `litteroi-cli status` and in the
+  project's copy. The skill takes it from the user's calendar event at the recording's start, or
+  from the transcript and asks the user, since the user could not tell which call a page was
+  for.
+- When the screens were recorded, `litteroi-cli` reads the names the call app shows on the
+  participants' tiles into `nimet-ruudulla.txt`, so the skill can guess the speakers from who was
+  in the call. It reads a frame every 10 s with macOS's own text recognition (Vision, Finnish and
+  English) on the Mac and keeps only lines shaped like a name, outside the menu bar and away from
+  a list of the call apps' and browsers' labels, that stay on screen for 2 minutes or more in at
+  least a third of the frames. A one-letter misreading counts with the name. No face recognition:
+  a model that recognises faces across meetings would be biometric data like voice profiles.
+- Before writing, the skill asks the user who each speaker is, quoting the lines around a few of
+  each speaker's lines with its own guess from how people address each other. A file of names
+  written ahead of each meeting was too much work, and the user knows the voices. The user asked
+  for the context around each line and for a way to hear it with a click, and to answer on the
+  page rather than in the chat.
+- `litteroi-cli page` writes each meeting's `palaveri.html`, with the questions, the minutes and the
+  whole transcript, and every timestamp on it plays the meeting from there, showing the screens as
+  they were. The user opens it in Firefox, since Preview plays neither the CAF tracks nor a jump to
+  a time. The tool mixes the tracks into `palaveri.m4a` (AAC) and copies each screen video as H.264
+  `screen-<n>-<second>.mp4`, since Firefox may not play the recorder's HEVC; no session opens the
+  audio, the tool does the copying. Each question has a field for its answer, with fields for
+  glossary terms and other notes, and a button copies the answers as a prompt for the skill,
+  numbered as the questions are. The page keeps them in Firefox's local storage meanwhile.
+- `litteroi-cli export` copies a finished meeting, its minutes and corrected transcript in one
+  Markdown file, into `~/.claude/projects/<project>/meetings/` of the Claude Code project it
+  belongs to, so later sessions there can read it; a note in that project's memory says where.
+  The copy stays outside `memory/`, since a team repository's memory is shared with colleagues
+  and a meeting is not. The skill picks the project from the meeting and asks when none fits.
+- `litteroi-cli pdf` writes the corrected transcript as an A4 PDF to share, since Slack cuts a
+  message at 40,000 characters, less than an hour of transcript. AppKit's text system lays it out in
+  Helvetica Neue, so it needs no LibreOffice, whose headless run sees only its own fonts. The skill
+  then drafts the share with the decisions and action items in the message's text, since Slack's
+  search finds no word inside a PDF, and posts it where the project's memory says, or asks once and
+  writes the answer there. The draft says the meeting was recorded, since Litteroi tells no one else
+  in the call.
 - The skill starts Whisper (`litteroi-cli transcribe-pending`) for every recorded meeting, in
   the background, and finishes the meetings already transcribed meanwhile. Whisper takes about
   20 minutes per hour of audio. A meeting the app is still recording is left for the next run.
@@ -58,24 +121,37 @@
   a short break in mic use does not end it. After 3 polls without one it is quiet: it may be over,
   or muted in an app that lets go of the mic. Browsers count as call apps, for Meet and Teams on the
   web, so dictation in a browser counts too.
-- Its menu bar icon shows all the time: a waveform while it waits, with a mic badge during a
-  call and a record circle while Litteroi records. Beside it stands the number of recordings not
-  transcribed yet, leaving out the one Litteroi is recording, so a backlog for the `litteroi` skill
-  shows without opening the folder. Its menu names that state and the count, and opens Litteroi or
-  `~/Litteroi`.
-- When a call starts, a small window at the top right asks "Palaveri alkoi (Teams).
-  Litteroidaanko?", names the shortcut and reminds to tell the participants. Its Nauhoita button
-  opens Litteroi. It never starts recording on its own, stays away when Litteroi is already
-  recording, and closes when a recording starts, the call ends or Ei nyt is clicked. It was a
-  notification at first, but the watcher's notifications were denied on the first Mac it ran on,
-  so a Meet call showed nothing, and every Mac would need that permission; the window needs
-  none.
-- Control-Option-L starts a recording from any app, or stops the one going on, since Litteroi
-  saves when it quits. It is a Carbon hot key (`RegisterEventHotKey`) in the watcher, which runs
-  all the time and needs no accessibility permission for it.
+- Its menu bar icon shows only while meetings wait for the `litteroi` skill, transcribed or not,
+  leaving out the one Litteroi is recording: the user asked for the icon only when there is
+  something to run in Claude Code. Beside it stands that number. The icon is a waveform, with a
+  mic badge during a call and a record circle while Litteroi records. Its menu names that state
+  and the count, says to type litteroi in Claude Code, and opens Litteroi or `~/Litteroi`. A
+  recording alone does not bring the icon up: with no Dock icon either, macOS's orange mic dot is
+  its only sign, which the user chose over an icon that shows with nothing to run.
+  Control-Option-H hides the icon, or shows it with nothing waiting, from then on until the next
+  press, since the user asked for a key to hide and unhide it; the watcher keeps that choice in
+  its defaults, so a restart keeps it too.
+- When a call starts, a small window at the top right asks only "Litteroidaanko?", with no title
+  naming the call app, as the user asked. Its buttons answer it, as the user asked: Ääni records the
+  audio, Kuva the screens too, and Ei dismisses it, each with its shortcut, Control-Option-A, V and
+  N, and Ääni is the default for Return. The prompts leave out the word record, as the user asked;
+  the T of Control-Option-T stands for transcribe, which the user picked over the L of Litteroi. It
+  never starts recording on its own, stays away when Litteroi is already recording, and closes when
+  a recording starts, the call ends, or Ei or Control-Option-N dismisses it. It was a notification
+  at first, but the watcher's notifications were denied on the first Mac it ran on, so a Meet call
+  showed nothing, and every Mac would need that permission; the window needs none.
+- Control-Option-T starts a recording from any app, or stops the one going on, since Litteroi saves
+  when it quits. It is a Carbon hot key (`RegisterEventHotKey`), as are V, A and H, held by the
+  watcher, which runs all the time and needs no accessibility permission for them.
+  Control-Option-N is held only while a prompt shows, so other apps keep it the rest of the time.
+- The keys use Control-Option, which the user chose to keep. Apple's guidelines prefer Command and
+  avoid Control, but for shortcuts inside an app; these work while the call app is in front,
+  where a Command shortcut may be that app's own, and none is among Apple's standard shortcuts.
+  With VoiceOver on, they meet its commands, whose default modifier is Control-Option.
 - A recording the watcher opened during a call, from the prompt, the shortcut or its menu, is for
-  that call: once the call is quiet, the same window offers to stop it, Lopeta ja tallenna stops and
-  saves, and the window closes again if the call app takes the mic back. The offer waited for the
+  that call: once the call is quiet, the same window asks "Lopetetaanko litterointi?". Lopeta ja
+  tallenna or Control-Option-T stops and saves, Ei nyt or Control-Option-N keeps the recording
+  going, and the window closes again if the call app takes the mic back. The offer waited for the
   call's end at first, and in the first test the user had stopped the recording by hand 10 s after
   leaving the call, before the 30 s were up. A recording started any other way, such as from
   Spotlight for an in-person meeting, gets no such offer and runs until the user stops it.
@@ -102,45 +178,51 @@
 - The meeting's language is the one most of its speech is in, Finnish on a tie. A window Whisper
   names as another language, or one under 5 s, too short to tell from, is transcribed again in
   the meeting's language when it came out in another.
-- Speaker labels follow the meeting's language (Minä and Puhuja 1, or Me and Speaker 1). The
-  skill keeps each line of `korjattu.md` in the language it was spoken in and writes
-  `muistio.md` in the meeting's language.
+- The user's own track carries their first name, the first word of their macOS account's full name,
+  since the user asked for their name rather than Minä; on a Mac with no full name it reads Minä, or
+  Me in English. The other labels follow the meeting's language (Puhuja 1, or Speaker 1). The skill
+  keeps each line of `korjattu.md` in the language it was spoken in and writes `muistio.md` in the
+  meeting's language.
 - The app and the watcher show Finnish or English by the user's language order in macOS, from
   String Catalogs (`Localizable.xcstrings`, `InfoPlist.xcstrings`) with Finnish as the source;
   a Mac set to neither shows English.
 
 ## Storage
 
-- `~/Litteroi/<yyyy-mm-dd-hhmm>/` holds `mic.caf`, `call.caf`, `transcript.md` and
-  `transcript.json`, and once Claude has finished the meeting `korjattu.md`, `muistio.md`, the
-  key `avain.json` and the `claude/` folder with the text Claude read and wrote. Not
-  `~/Documents` (iCloud sync) and not inside the app bundle.
-- `~/Litteroi/nimet.txt` lists the people and clients to hide, `~/Litteroi/sanasto.txt` the
-  terms Claude may see. The user writes both.
+- `~/Litteroi/<yyyy-mm-dd-hhmm>/` holds `mic.caf`, `call.caf`, `screen-<n>-<second>.mov` for each
+  display and stretch of screen recording, `.nauhoitus` while the app records,
+  `transcript.md` and `transcript.json`, `nimet-ruudulla.txt` when the screens were recorded,
+  `nimi.txt`, `kysymykset.md` while the skill waits for the user's
+  answers, once Claude has finished the meeting `korjattu.md` and `muistio.md`, and the page
+  `palaveri.html` with `palaveri.m4a` and a `.mp4` copy of each screen video. Not `~/Documents`
+  (iCloud sync) and not inside the app bundle.
+- `~/Litteroi/sanasto.txt` lists terms and names as they should be written, people first, then
+  organisations, then terms. The skill adds each name the user confirms and each term it corrects
+  when it finishes a meeting, as the user asked, so the next meetings start from them.
 - The tracks are 16 kHz mono 16-bit PCM in CAF, about 115 MB an hour each: the rate Whisper
   works at, and a container that stays readable after a crash, which m4a does not.
-- The watcher deletes `mic.caf` and `call.caf` 14 days after `muistio.md` was written, checked
-  hourly. By then the minutes have been read, and a `[?]` or a speaker guess checked against the
-  audio; storage limitation (GDPR Art. 5(1)(e)) asks for no longer. A meeting not finished keeps
-  its audio. Transcripts and minutes stay.
+- The screen videos are QuickTime files, finished when the recording stops; a crash leaves them
+  unreadable. Their size an hour is not measured yet.
+- The watcher deletes `mic.caf`, `call.caf`, the screen videos and the page's copies of them 14
+  days after `muistio.md` was written, checked hourly. By then the minutes have been read, and a
+  `[?]` or an unnamed speaker checked against the audio; storage limitation (GDPR Art. 5(1)(e))
+  asks for no longer. A meeting not finished keeps its audio and videos. Transcripts and minutes
+  stay.
 
 ## Privacy
 
 - Recording and transcription run locally and need no data processing agreement. The Claude
   step sends text to Anthropic, which does.
-- Participants are told at the start of the meeting, including that Claude may read the text
-  with names hidden.
+- Participants are told at the start of the meeting, including that the screens are recorded.
+  The app shows no reminder: telling them is the user's part.
+- The screen videos show what was shared and the participants' video, so they stay on the Mac
+  like the audio: the skill reads only text, and no session opens them. The names read from them
+  go to Claude like the names in the transcript, and the other text on the screen does not.
 - Voice profiles that recognise people across meetings are biometric data (GDPR Art. 9) and need
-  each person's explicit consent. Until then, speakers are named by hand after the meeting, or
-  guessed by Claude from the text.
-- Before any text goes to Claude, `litteroi-cli pseudonymize` replaces the names of
-  `nimet.txt` with Henkilö A, B and Asiakas 1, 2, keeping a Finnish case ending after a colon
-  (`Henkilö A:lle`). The key stays on the Mac and `restore` puts the names back.
-- The list catches only what it can: capitalised words, the -nen stem and kk, pp, tt and t
-  gradation (Meikäläisen, Pekan, Matin, Oudin). A name not on the list, one Whisper writes in
-  lower case, such as `moodle-alusta`, or an irregular form reaches Claude, so the skill names
-  the name-like words it saw unhidden for the user to add. A capitalised word starting with a
-  listed name, such as Mattila for Matti, is hidden too.
+  each person's explicit consent. Until then, the user names the speakers when the skill asks.
+- The transcript goes to Claude with its names. Hiding the names of a hand-written list first
+  meant writing the list before the first meeting, and names Whisper wrote in lower case or in an
+  irregular form got through anyway.
 
 ## Why not OpenWhispr
 

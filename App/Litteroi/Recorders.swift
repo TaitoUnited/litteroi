@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreAudio
 import LitteroiCore
+import ScreenCaptureKit
 
 /// Records the default microphone. A device change, such as headphones being plugged in,
 /// restarts the engine with the new format.
@@ -49,13 +50,18 @@ final class MicRecorder {
 
 /// Records what the Mac plays, which on a call is the other participants, through a Core Audio
 /// process tap on every process but Litteroi. Needs the system audio recording permission;
-/// without it the track stays silent and the meeting is treated as one without a call.
+/// without it the track stays silent and the meeting is treated as one without a call. The tap's
+/// format follows the output device's, which changes when a Bluetooth headset switches from its
+/// call profile back to music as the call lets go of the mic.
 final class SystemAudioRecorder {
     let writer: TrackWriter
     private let queue = DispatchQueue(label: "fi.taitounited.litteroi.system-audio", qos: .userInitiated)
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var procID: AudioDeviceIOProcID?
+    /// Read and written on `queue` only, by the IO proc and the format listener.
+    private var format: AVAudioFormat?
+    private var formatListener: AudioObjectPropertyListenerBlock?
 
     init(url: URL) throws {
         writer = try TrackWriter(url: url)
@@ -72,6 +78,15 @@ final class SystemAudioRecorder {
 
         var streamFormat = try CoreAudio.tapFormat(tapID)
         guard let format = AVAudioFormat(streamDescription: &streamFormat) else { throw RecorderError.unsupportedFormat }
+        self.format = format
+        let tapID = tapID
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            guard var description = try? CoreAudio.tapFormat(tapID) else { return }
+            self?.format = AVAudioFormat(streamDescription: &description)
+        }
+        var formatAddress = CoreAudio.tapFormatAddress
+        try CoreAudio.check(AudioObjectAddPropertyListenerBlock(tapID, &formatAddress, queue, listener), "AddPropertyListener")
+        formatListener = listener
 
         let outputUID = try CoreAudio.defaultOutputDeviceUID()
         let aggregate: [String: Any] = [
@@ -89,10 +104,9 @@ final class SystemAudioRecorder {
         ]
         try CoreAudio.check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &aggregateID), "AudioHardwareCreateAggregateDevice")
 
-        let writer = writer
-        try CoreAudio.check(AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, queue) { _, input, _, _, _ in
-            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: input, deallocator: nil) else { return }
-            try? writer.append(buffer)
+        try CoreAudio.check(AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, queue) { [weak self] _, input, _, _, _ in
+            guard let self, let format = self.format else { return }
+            try? self.writer.append(input, format: format)
         }, "AudioDeviceCreateIOProcIDWithBlock")
         try CoreAudio.check(AudioDeviceStart(aggregateID, procID), "AudioDeviceStart")
     }
@@ -106,9 +120,116 @@ final class SystemAudioRecorder {
             AudioHardwareDestroyAggregateDevice(aggregateID)
         }
         if tapID != kAudioObjectUnknown {
+            if let formatListener {
+                var formatAddress = CoreAudio.tapFormatAddress
+                AudioObjectRemovePropertyListenerBlock(tapID, &formatAddress, queue, formatListener)
+            }
             AudioHardwareDestroyProcessTap(tapID)
         }
         queue.sync { writer.close() }
+    }
+}
+
+/// Records every display into the meeting folder, one video each from `second` of the meeting on,
+/// so what was shown in a meeting can be looked up later. Needs the screen recording permission.
+@MainActor
+final class ScreenRecorder {
+    private var displays: [DisplayRecorder] = []
+    private var stopped = false
+
+    func start(in folder: MeetingFolder, at second: Int) async throws {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        for (index, display) in content.displays.enumerated() where !stopped {
+            var start = second
+            while FileManager.default.fileExists(atPath: folder.screen(index + 1, from: start).path) {
+                start += 1
+            }
+            let recorder = try DisplayRecorder(display: display, url: folder.screen(index + 1, from: start))
+            try await recorder.start()
+            displays.append(recorder)
+        }
+    }
+
+    func stop() async {
+        stopped = true
+        for display in displays {
+            await display.stop()
+        }
+        displays = []
+    }
+}
+
+/// H.265 at up to 2 frames a second and at most 1920 points wide, enough for slides and shared
+/// documents. ScreenCaptureKit sends a frame only when the screen changes.
+private final class DisplayRecorder: NSObject, SCStreamOutput {
+    private let url: URL
+    private let stream: SCStream
+    private let writer: AVAssetWriter
+    private let input: AVAssetWriterInput
+    private let queue = DispatchQueue(label: "fi.taitounited.litteroi.screen", qos: .utility)
+    private var lastFrame: CMTime?
+    private var stopped = false
+
+    init(display: SCDisplay, url: URL) throws {
+        let configuration = SCStreamConfiguration()
+        let width = min(display.width, 1920)
+        configuration.width = width / 2 * 2
+        configuration.height = display.height * width / display.width / 2 * 2
+        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 2)
+        configuration.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        configuration.showsCursor = true
+        self.url = url
+        stream = SCStream(filter: SCContentFilter(display: display, excludingWindows: []), configuration: configuration, delegate: nil)
+        writer = try AVAssetWriter(outputURL: url, fileType: .mov)
+        input = AVAssetWriterInput(mediaType: .video, outputSettings: [
+            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoWidthKey: configuration.width,
+            AVVideoHeightKey: configuration.height,
+        ])
+        input.expectsMediaDataInRealTime = true
+        writer.add(input)
+        super.init()
+        try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
+    }
+
+    func start() async throws {
+        try await stream.startCapture()
+    }
+
+    /// The last frame lasts until the recording stops, however long the screen stayed still.
+    func stop() async {
+        try? await stream.stopCapture()
+        let lastFrame = queue.sync { () -> CMTime? in
+            stopped = true
+            return self.lastFrame
+        }
+        guard let lastFrame else {
+            writer.cancelWriting()
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+        input.markAsFinished()
+        writer.endSession(atSourceTime: CMTimeMaximum(lastFrame, CMClockGetTime(CMClockGetHostTimeClock())))
+        await writer.finishWriting()
+    }
+
+    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
+        guard type == .screen, !stopped, sampleBuffer.isValid, Self.isFrame(sampleBuffer) else { return }
+        if lastFrame == nil {
+            guard writer.startWriting() else { return }
+            writer.startSession(atSourceTime: sampleBuffer.presentationTimeStamp)
+        }
+        if input.isReadyForMoreMediaData, input.append(sampleBuffer) {
+            lastFrame = sampleBuffer.presentationTimeStamp
+        }
+    }
+
+    /// ScreenCaptureKit also sends buffers without an image while the screen stays still.
+    private static func isFrame(_ buffer: CMSampleBuffer) -> Bool {
+        guard let attachments = CMSampleBufferGetSampleAttachmentsArray(buffer, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
+              let status = attachments.first?[.status] as? Int
+        else { return false }
+        return status == SCFrameStatus.complete.rawValue
     }
 }
 
@@ -147,12 +268,14 @@ private enum CoreAudio {
         return object
     }
 
+    static let tapFormatAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioTapPropertyFormat,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+
     static func tapFormat(_ tap: AudioObjectID) throws -> AudioStreamBasicDescription {
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioTapPropertyFormat,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
+        var address = tapFormatAddress
         var format = AudioStreamBasicDescription()
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         try check(AudioObjectGetPropertyData(tap, &address, 0, nil, &size, &format), "kAudioTapPropertyFormat")
