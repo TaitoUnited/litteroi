@@ -236,18 +236,21 @@ note that a machine transcribed the recording and Claude corrected it for readin
 `muistio.md`. Read it and look at every page before the reply hands it
 over.
 
-The share is a post, or a reply in a thread, whose text holds the decisions and the action items
-of `muistio.md`, with the PDF attached. Slack's search finds the words of a
-message but not those inside a PDF, so what a later search, Claude's included, should find goes in
-the text, and the PDF carries the summary and the whole transcript.
+The share is a post, or a reply in a thread, of one line with the PDF attached: the meeting's
+name and date, that it was recorded and transcribed, and the topics of `muistio.md` as the words a
+later search would use, such as `Meks weekly 9.11. (nauhoitettu ja litteroitu, muistio ja
+litterointi liitteenä): bussikorjaus, Sentry, AWS-tunnukset`. People read the PDF, which carries
+the minutes and the whole transcript, so the decisions and the action items stay out of the post.
+Slack's search finds the words of a message but not those inside a PDF, so the topics are in the
+line for that search alone; Claude reads a meeting from `~/Litteroi` and the project's copy.
 
 The place is the one the project's memory names for the meeting, such as its note on meetings.
 Without one, search Slack, private channels and DMs included, for where the attendees talk, such
 as a thread where the organiser posted minutes, ask in the reply with a recommended answer, and
 write the answer into the project's memory, so the next meeting of the series goes there too.
 
-Draft it with the `slack-draft` skill, in the place's language and register, so a post with lists
-goes on the clipboard. Litteroi tells no one else in the call that it records, so the draft says
+Draft it with the `slack-draft` skill, in the place's language and register. A line of words
+alone needs no clipboard, so the reply gives it in a `text` block. Litteroi tells no one else in the call that it records, so the draft says
 the meeting was recorded, and the reply says that the user posts it only when the attendees are
 fine with that. The reply names the channel and the thread in words, and gives the PDF's `file://`
 address in a `text` block of its own, which the user copies into Firefox's address bar to read
