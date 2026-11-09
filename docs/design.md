@@ -3,7 +3,7 @@
 ## Recording app
 
 - A Mac app named Litteroi, so Spotlight finds it with "litteroi".
-- Opening it starts recording the audio. Opened with Cmd+Space, it shows the small window (timer,
+- Opening it starts recording. Opened with Cmd+Space, it shows the small window (timer,
   mic and call levels, Lopeta ja tallenna) and a Dock icon. Started by the watcher, from
   Control-Option-T, V or A or the prompt, it shows neither, so the meeting stays in front, as the
   user asked: the app is an `LSUIElement` that takes the regular activation policy only while its
@@ -17,17 +17,20 @@
   through a Core Audio process tap (macOS 14.2+, `NSAudioCaptureUsageDescription`, "system audio
   recording" permission). A tap on call apps alone would miss a browser call whose audio process
   starts after the recording. A call track with under 10 s of sound is dropped as no call.
-- On Control-Option-V every display is recorded too, one video each, so what was shown in a meeting
+- When the screens are recorded, every display is, one video each, so what was shown in a meeting
   can be looked up later: ScreenCaptureKit, H.265, up to 2 frames a second and at most 1920 points
   wide. ScreenCaptureKit sends a frame only when the screen changes, so a slide left up costs next
   to nothing, and the last frame lasts until the recording stops. It needs the screen recording
   permission, which the first recording asks for; without it the audio is still recorded and the
   window says why the screens are not.
-- A recording is audio only unless the user asks for the screens, from the start or midway:
-  Control-Option-V records the screens too and Control-Option-A only the audio again, since macOS
-  shows a purple item in the menu bar for as long as an app captures the screen, and no app can
-  hide it. The user asked for both keys, for the switch midway and for Control-Option-T and the
-  prompt to record audio only. The watcher opens the app with `--video`, or switches a recording
+- A recording takes the screens too while the Mac's own display is the only one on, and only the
+  audio while an external display is connected, as the user asked on 9.11.2026: "litteroi should
+  always start transcribing with screen save when not on external display". This holds for every
+  start that names no mode: a call recorded on its own, Control-Option-T, the menu and Spotlight.
+  Control-Option-V records the screens too and Control-Option-A only the audio, from the start or
+  midway, and the prompt's Ääni and Kuva pick one. macOS shows a purple item in the menu bar for
+  as long as an app captures the screen, and no app can hide it. The user asked for both keys and
+  for the switch midway. The watcher opens the app with `--video`, or switches a recording
   going on with a distributed notification, and each stretch of screen recording is its own
   video, `screen-<display>-<second>.mov`, named by the second of the meeting it starts at, which
   the page uses to show it only while it was recorded. The app writes `ääni` or `ääni ja video` to
@@ -131,15 +134,37 @@
   Control-Option-H hides the icon, or shows it with nothing waiting, from then on until the next
   press, since the user asked for a key to hide and unhide it; the watcher keeps that choice in
   its defaults, so a restart keeps it too.
-- When a call starts, a small window at the top right asks only "Litteroidaanko?", with no title
-  naming the call app, as the user asked. Its buttons answer it, as the user asked: Ääni records the
-  audio, Kuva the screens too, and Ei dismisses it, each with its shortcut, Control-Option-A, V and
-  N, and Ääni is the default for Return. The prompts leave out the word record, as the user asked;
-  the T of Control-Option-T stands for transcribe, which the user picked over the L of Litteroi. It
-  never starts recording on its own, stays away when Litteroi is already recording, and closes when
-  a recording starts, the call ends, or Ei or Control-Option-N dismisses it. It was a notification
-  at first, but the watcher's notifications were denied on the first Mac it ran on, so a Meet call
-  showed nothing, and every Mac would need that permission; the window needs none.
+- A call in an app or site of the auto list, `~/Litteroi/automaattiset.txt`, is recorded on its
+  own as soon as it starts, and the recording stops when the call ends, 30 s after the call app let
+  go of the mic, as the user asked on 9.11.2026: "it should always transcribe audio while on mic is
+  being used by a meeting". The watcher only offered to record at first, since the participants
+  have to be told first; telling them stays the user's part. The list holds a call app's name, such
+  as Teams or Signal, or a site's host, such as meet.google.com, one a line, so a browser on a
+  meeting site is recorded and the same browser taking the mic for dictation on another site is
+  not. The menu's Litteroidaan itsestään removes an entry, and the file can be edited by hand.
+- Any other call gets a small window at the top right that asks "Litteroidaanko?". A call whose app
+  or site is not on the list yet adds the line "Aina: litteroi jatkossa itsestään (<app or site>)"
+  and the button Aina, which adds it to the list and records, as the user asked: "if the url or app
+  is new it should ask add to auto transcribe". Ääni records the audio, Kuva the screens too, and
+  Ei dismisses it, each with its shortcut, Control-Option-L, A, V and N. Return takes Kuva while the
+  Mac's own display is the only one on and Ääni otherwise, never Aina, which changes the list for
+  good. A browser call whose site cannot be read gets the window without Aina, since adding the
+  whole browser would record every site. The prompts leave out the word record, as the user asked;
+  the T of Control-Option-T stands for transcribe, which the user picked over the L of Litteroi. The
+  window stays away when Litteroi is already recording, and closes when a recording starts, the call
+  ends, or Ei or Control-Option-N dismisses it. It was a notification at first, but the watcher's
+  notifications were denied on the first Mac it ran on, so a Meet call showed nothing, and every Mac
+  would need that permission; the window needs none.
+- A browser call's site is the host, without www., of the page in the browser's front window, which
+  the meeting has just opened in, read through the Accessibility API when the call starts. Chrome,
+  Edge, Brave, Arc and Safari give the URL as the window's document. Firefox builds its
+  accessibility tree only while a client has set `AXEnhancedUserInterface`, as VoiceOver does, so
+  when a read finds nothing the watcher sets it, reads again, which took about 0.5 s, and sets it
+  back, after which Firefox drops the tree again. No browser says which tab holds the mic, so a
+  call joined in a window left behind another is read from the wrong page. AppleScript would need
+  an Automation permission per browser and gives no URL in Firefox, the default browser on the first
+  Mac, and Firefox's session file under Application Support is closed to other apps. The watcher
+  asks for the Accessibility permission the first time a call starts in a browser, once.
 - Control-Option-T starts a recording from any app, or stops the one going on, since Litteroi saves
   when it quits. It is a Carbon hot key (`RegisterEventHotKey`), as are V, A and H, held by the
   watcher, which runs all the time and needs no accessibility permission for them.
@@ -148,8 +173,8 @@
   avoid Control, but for shortcuts inside an app; these work while the call app is in front,
   where a Command shortcut may be that app's own, and none is among Apple's standard shortcuts.
   With VoiceOver on, they meet its commands, whose default modifier is Control-Option.
-- A recording the watcher opened during a call, from the prompt, the shortcut or its menu, is for
-  that call: once the call is quiet, the same window asks "Lopetetaanko litterointi?". Lopeta ja
+- A recording the watcher opened during a call, from the prompt's Ääni or Kuva, the shortcut or its
+  menu, is for that call: once the call is quiet, the same window asks "Lopetetaanko litterointi?". Lopeta ja
   tallenna or Control-Option-T stops and saves, Ei nyt or Control-Option-N keeps the recording
   going, and the window closes again if the call app takes the mic back. The offer waited for the
   call's end at first, and in the first test the user had stopped the recording by hand 10 s after
@@ -196,6 +221,9 @@
   answers, once Claude has finished the meeting `korjattu.md` and `muistio.md`, and the page
   `palaveri.html` with `palaveri.m4a` and a `.mp4` copy of each screen video. Not `~/Documents`
   (iCloud sync) and not inside the app bundle.
+- `~/Litteroi/automaattiset.txt` lists the call apps and sites recorded on their own, one a line.
+- `litteroi-cli status` gives each recording's length from the size of `mic.caf`, so a slip of a
+  few seconds stands out from a meeting.
 - `~/Litteroi/sanasto.txt` lists terms and names as they should be written, people first, then
   organisations, then terms. The skill adds each name the user confirms and each term it corrects
   when it finishes a meeting, as the user asked, so the next meetings start from them.
@@ -214,7 +242,9 @@
 - Recording and transcription run locally and need no data processing agreement. The Claude
   step sends text to Anthropic, which does.
 - Participants are told at the start of the meeting, including that the screens are recorded.
-  The app shows no reminder: telling them is the user's part.
+  The app shows no reminder: telling them is the user's part. A call on the auto list is recorded
+  from its first seconds, before anyone has been told, so the list holds only the apps and sites
+  the user added.
 - The screen videos show what was shared and the participants' video, so they stay on the Mac
   like the audio: the skill reads only text, and no session opens them. The names read from them
   go to Claude like the names in the transcript, and the other text on the screen does not.

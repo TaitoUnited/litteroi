@@ -37,7 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     /// The call watcher opens the app with `--video` to record the screens too, and switches them
-    /// on and off midway with a notification.
+    /// on and off midway with a notification. Opened by the user, it records them while no external
+    /// display is connected.
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.registerCallWatcher()
         for mode in [MeetingFolder.RecordingMode.audio, .audioAndVideo] {
@@ -46,7 +47,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         Task {
-            await AppModel.shared.startRecording(screens: CommandLine.arguments.contains("--video"))
+            let screens = fromWatcher ? CommandLine.arguments.contains("--video")
+                : MeetingFolder.RecordingMode.forDisplays == .audioAndVideo
+            await AppModel.shared.startRecording(screens: screens)
             if AppModel.shared.needsAttention || !Self.watcherRunning || !fromWatcher {
                 openRecordingWindow()
             } else if window == nil, NSApp.isActive {

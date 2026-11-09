@@ -3,14 +3,18 @@
 Litteroi turns Finnish and English meetings into text on your own Mac. Nothing is sent to the cloud.
 
 - `Litteroi.app`: open it with Cmd+Space "litteroi" and it starts recording your mic and the call
-  audio into `~/Litteroi/<date-time>/`, with a small window you can close. From the install on, a
-  watcher runs all the time. Its menu bar icon shows only while meetings wait for `litteroi` in
-  Claude Code, and Control-Option-H hides or shows it. When a call starts, a small window offers to
-  record the audio, the screens too or nothing; it never records on its own. Control-Option-T starts
-  or stops a recording from any app, with no window or Dock icon, Control-Option-V records every
-  screen too and Control-Option-A only the audio again, from the start or midway, and when a call
-  ends, a recording started for it is offered to stop. When the screens were recorded, the names on
-  the call's tiles are read from them on the Mac to help tell who spoke.
+  audio into `~/Litteroi/<date-time>/`, with a small window you can close. Every screen is recorded
+  too while the Mac's own display is the only one on. From the install on, a watcher runs all the
+  time. Its menu bar icon shows only while meetings wait for `litteroi` in Claude Code, and
+  Control-Option-H hides or shows it. A call in an app or on a site you chose, listed in
+  `~/Litteroi/automaattiset.txt`, is recorded on its own until it ends. Any other call gets a small
+  window that offers to record the audio, the screens too or nothing, and for an app or site not on
+  the list yet, Aina adds it there and records. A site in a browser is read through macOS's
+  Accessibility permission, which the watcher asks for once. Control-Option-T starts or stops a
+  recording from any app, with no window or Dock icon, Control-Option-V records every screen too and
+  Control-Option-A only the audio, from the start or midway, and when a call ends, a recording
+  started for it is offered to stop. When the screens were recorded, the names on the call's tiles
+  are read from them on the Mac to help tell who spoke.
 - `LitteroiCore`: Whisper large-v3 in Finnish or English (WhisperKit) and speaker labels
   (SpeakerKit, pyannote community-1).
 - `litteroi-cli`, inside the app: transcribes a mic recording, optionally with a separate call
@@ -34,9 +38,9 @@ Requires macOS 14.2 or later on Apple silicon and the GitHub CLI `gh`, signed in
 that can read this repository. Building it needs Xcode and XcodeGen. The first transcription
 downloads about 3.1 GB of models.
 
-Litteroi tells no one else in the call that it records. Tell the others before you record, and
-share the transcript only where they are fine with it: some countries require everyone's consent
-to record a call.
+Litteroi tells no one else in the call that it records, and a call on your auto list is recorded
+from its first seconds. Tell the others when the call starts, and share the transcript only where
+they are fine with it: some countries require everyone's consent to record a call.
 
 ## Getting started
 

@@ -13,9 +13,11 @@ enum CallPrompt {
     }
 
     private static var panel: NSPanel?
+    private static var actions: [Action] = []
 
-    /// The first action is the default one, taken with Return.
-    static func show(title: String? = nil, message: String, actions: [Action], dismiss: LocalizedStringKey) {
+    /// The action with `defaultKey`, or else the first, is the default one, taken with Return.
+    static func show(title: String? = nil, message: String, actions: [Action], dismiss: LocalizedStringKey,
+                     defaultKey: String? = nil) {
         close()
         let actions = actions.map { action in
             Action(title: action.title, key: action.key) {
@@ -23,7 +25,9 @@ enum CallPrompt {
                 action.run()
             }
         }
-        let view = CallPromptView(title: title, message: message, actions: actions, dismiss: dismiss)
+        let defaultIndex = actions.firstIndex { $0.key == defaultKey } ?? 0
+        let view = CallPromptView(title: title, message: message, actions: actions, defaultIndex: defaultIndex,
+                                  dismiss: dismiss)
         let host = NSHostingView(rootView: view)
         let size = host.fittingSize
         let panel = PromptPanel(contentRect: NSRect(origin: .zero, size: size),
@@ -42,13 +46,20 @@ enum CallPrompt {
         }
         panel.orderFrontRegardless()
         self.panel = panel
-        RecordShortcut.registerDismiss()
+        self.actions = actions
+        RecordShortcut.registerPromptKeys(always: actions.contains { $0.key == "L" })
+    }
+
+    /// Runs the action of the prompt showing that has this hot key.
+    static func run(key: String) {
+        actions.first { $0.key == key }?.run()
     }
 
     static func close() {
         panel?.close()
         panel = nil
-        RecordShortcut.unregisterDismiss()
+        actions = []
+        RecordShortcut.unregisterPromptKeys()
     }
 }
 
@@ -61,6 +72,7 @@ private struct CallPromptView: View {
     let title: String?
     let message: String
     let actions: [CallPrompt.Action]
+    let defaultIndex: Int
     let dismiss: LocalizedStringKey
 
     var body: some View {
@@ -83,7 +95,7 @@ private struct CallPromptView: View {
                         Button(action: actions[index].run) {
                             ShortcutLabel(title: actions[index].title, key: actions[index].key)
                         }
-                        .keyboardShortcut(index == 0 ? .defaultAction : nil)
+                        .keyboardShortcut(index == defaultIndex ? .defaultAction : nil)
                     }
                     Button { CallPrompt.close() } label: { ShortcutLabel(title: dismiss, key: "N") }
                 }

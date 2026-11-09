@@ -24,7 +24,10 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
    ```
 
 2. List the meetings. Each line is a stage, `litteroimatta` (recorded), `litteroitu` (transcribed)
-   or `valmis` (finished), then the meeting's folder. The meeting being recorded shows as
+   or `valmis` (finished), then the meeting's folder, the recording's length and its name when it
+   has one. A recording of a minute or less is most likely a slip: the reply asks whether to move
+   its folder to the Trash with `trash`, and it waits for the answer before steps 4 and 5. The
+   meeting being recorded shows as
    `nauhoitetaan (ääni)` or `nauhoitetaan (ääni ja video)`: tell the user which, and leave it
    alone:
 

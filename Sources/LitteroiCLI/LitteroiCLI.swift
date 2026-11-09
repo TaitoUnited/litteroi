@@ -129,7 +129,7 @@ private func readScreenNames(_ meeting: MeetingFolder) async throws {
 
 struct Status: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Listaa palaverit vaiheineen: nauhoitetaan (ääni tai ääni ja video), litteroimatta, litteroitu (odottaa Claudea) tai valmis, sitten kansio ja palaverin nimi, kun se tiedetään."
+        abstract: "Listaa palaverit vaiheineen: nauhoitetaan (ääni tai ääni ja video), litteroimatta, litteroitu (odottaa Claudea) tai valmis, sitten kansio, nauhoituksen pituus, kun ääni on tallessa, ja palaverin nimi, kun se tiedetään."
     )
 
     @Option(help: "Litteroin kansio.")
@@ -141,8 +141,13 @@ struct Status: ParsableCommand {
         let recorded = appRunning ? meetings.last : nil
         for meeting in meetings {
             let stage = meeting == recorded ? meeting.recordingMode.map { "nauhoitetaan (\($0.rawValue))" } : nil
-            print([stage ?? meeting.stage!.rawValue, meeting.url.path, meeting.name].compactMap { $0 }.joined(separator: "\t"))
+            print([stage ?? meeting.stage!.rawValue, meeting.url.path, meeting.duration.map(length), meeting.name]
+                .compactMap { $0 }.joined(separator: "\t"))
         }
+    }
+
+    private func length(_ duration: TimeInterval) -> String {
+        duration < 60 ? "\(Int(duration)) s" : "\(Int((duration / 60).rounded())) min"
     }
 }
 

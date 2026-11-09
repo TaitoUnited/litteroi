@@ -27,6 +27,13 @@ struct LitteroiWatcherApp: App {
             } else {
                 Button("Nauhoita Litteroilla") { CallWatcher.shared.startRecording() }
             }
+            if !watcher.autoRecorded.isEmpty {
+                Menu("Litteroidaan itsestään") {
+                    ForEach(watcher.autoRecorded, id: \.self) { source in
+                        Button("Poista \(source)") { CallWatcher.shared.removeAutoRecorded(source) }
+                    }
+                }
+            }
             Text("Control-Optio-T aloittaa tai lopettaa nauhoituksen")
             Text("Control-Optio-V nauhoittaa myös näytön, Control-Optio-A vain äänen")
             Text("Control-Optio-H piilottaa tai näyttää tämän kuvakkeen")
@@ -41,11 +48,12 @@ struct LitteroiWatcherApp: App {
 }
 
 /// Runs in the menu bar from login on, and launchd starts it again whenever it exits. Once a call
-/// app has held the microphone for a few seconds, a prompt offers to record; it never records on
-/// its own, since the participants have to be told first. Once the call app has let go of the
-/// microphone for a few seconds, a recording it started for that call gets a prompt offering to
-/// stop it. It also counts the recordings not transcribed yet and deletes the audio of meetings
-/// finished long ago.
+/// app has held the microphone for a few seconds, a call in an app or site of the auto list is
+/// recorded on its own until the call ends, and any other call gets a prompt that offers to record
+/// it and to add its app or site to the list. Once the call app has let go of the microphone for a
+/// few seconds, a recording the prompt started for that call gets a prompt offering to stop it. It
+/// also counts the recordings not transcribed yet and deletes the audio of meetings finished long
+/// ago.
 @MainActor
 final class CallWatcher: ObservableObject {
     static let shared = CallWatcher()
@@ -54,6 +62,7 @@ final class CallWatcher: ObservableObject {
     @Published private(set) var recording = false
     @Published private(set) var mode: MeetingFolder.RecordingMode?
     @Published private(set) var unfinished = 0
+    @Published private(set) var autoRecorded: [String] = []
     @Published var iconShown = UserDefaults.standard.object(forKey: "iconShown") as? Bool {
         didSet { UserDefaults.standard.set(iconShown, forKey: "iconShown") }
     }
@@ -67,6 +76,10 @@ final class CallWatcher: ObservableObject {
     private var nextCleanup = Date.distantPast
     private var startingForCallUntil = Date.distantPast
     private var recordingForCall = false
+    private var autoStartingUntil = Date.distantPast
+    private var stopsWithCall = false
+    private var calls = 0
+    private let autoList = AutoRecordList(file: MeetingFolder.defaultRoot.appending(path: "automaattiset.txt"))
 
     func start() {
         RecordShortcut.register()
@@ -93,23 +106,26 @@ final class CallWatcher: ObservableObject {
         if self.mode != mode {
             self.mode = mode
         }
+        let autoRecorded = autoList.entries
+        if self.autoRecorded != autoRecorded {
+            self.autoRecorded = autoRecorded
+        }
         let micUsers = AudioProcesses.micUsers()
         if recording != micUsers.contains(CallDetector.litteroi) {
             recording.toggle()
             recordingForCall = recording && Date.now < startingForCallUntil
+            stopsWithCall = recording && Date.now < autoStartingUntil
             CallPrompt.close()
         }
         switch detector.update(micUsers: micUsers) {
         case .started(let app, let litteroiRecording):
             call = app
+            calls += 1
             if !litteroiRecording {
-                CallPrompt.show(message: String(localized: "Litteroidaanko?"), actions: [
-                    .init(title: "Ääni", key: "A") { CallWatcher.shared.record(.audio) },
-                    .init(title: "Kuva", key: "V") { CallWatcher.shared.record(.audioAndVideo) },
-                ], dismiss: "Ei")
+                recordOrOffer(app, call: calls)
             }
         case .quiet:
-            if recording, recordingForCall, let call {
+            if recording, recordingForCall, !stopsWithCall, let call {
                 CallPrompt.show(title: String(localized: "Palaveri päättyi (\(call))"),
                                 message: String(localized: "Lopetetaanko litterointi?"),
                                 actions: [.init(title: "Lopeta ja tallenna", key: "T") { CallWatcher.stopRecording() }],
@@ -120,13 +136,72 @@ final class CallWatcher: ObservableObject {
                 CallPrompt.close()
             }
         case .ended:
-            if !recording {
+            if recording, stopsWithCall {
+                Self.stopRecording()
+            } else if !recording {
                 CallPrompt.close()
             }
             call = nil
         case nil:
             break
         }
+    }
+
+    /// The source is the call app, or for a browser the site in its front window, which the
+    /// meeting has just opened in. A browser whose site cannot be read gets the prompt without the
+    /// offer to add it.
+    private func recordOrOffer(_ app: String, call number: Int) {
+        Task {
+            let source = await Self.source(of: app)
+            guard number == calls, call != nil, !Self.litteroiRunning else { return }
+            let mode = MeetingFolder.RecordingMode.forDisplays
+            if let source, autoList.contains(source) {
+                startRecording(mode, stopsWithCall: true)
+                return
+            }
+            var actions: [CallPrompt.Action] = []
+            if let source {
+                actions.append(.init(title: "Aina", key: "L") { CallWatcher.shared.alwaysRecord(source) })
+            }
+            actions += [
+                .init(title: "Ääni", key: "A") { CallWatcher.shared.record(.audio) },
+                .init(title: "Kuva", key: "V") { CallWatcher.shared.record(.audioAndVideo) },
+            ]
+            let litteroidaanko = String(localized: "Litteroidaanko?")
+            CallPrompt.show(title: source == nil ? nil : litteroidaanko,
+                            message: source.map { String(localized: "Aina: litteroi jatkossa itsestään (\($0))") } ?? litteroidaanko,
+                            actions: actions, dismiss: "Ei",
+                            defaultKey: mode == .audioAndVideo ? "V" : "A")
+        }
+    }
+
+    private static func source(of app: String) async -> String? {
+        guard BrowserPage.browsers[app] != nil else { return app }
+        guard BrowserPage.permitted else {
+            if !UserDefaults.standard.bool(forKey: "askedAccessibility") {
+                UserDefaults.standard.set(true, forKey: "askedAccessibility")
+                BrowserPage.askPermission()
+            }
+            return nil
+        }
+        return await BrowserPage.url(inBrowser: app).flatMap(BrowserPage.site(of:))
+    }
+
+    private func alwaysRecord(_ source: String) {
+        do {
+            try autoList.add(source)
+        } catch {
+            NSLog("LitteroiWatcher: \(source) not added to the auto list: \(error)")
+        }
+        autoRecorded = autoList.entries
+        if !Self.litteroiRunning {
+            startRecording(.forDisplays, stopsWithCall: true)
+        }
+    }
+
+    func removeAutoRecorded(_ source: String) {
+        try? autoList.remove(source)
+        autoRecorded = autoList.entries
     }
 
     var status: String {
@@ -143,12 +218,13 @@ final class CallWatcher: ObservableObject {
         return String(localized: "Odottaa palaveria")
     }
 
-    /// A recording opened during a call is for that call, so its end offers to stop it. The
-    /// screens are recorded only when asked for, since macOS shows a purple item in the menu bar
-    /// while they are.
-    func startRecording(_ mode: MeetingFolder.RecordingMode = .audio) {
+    /// A recording opened during a call is for that call, so its end offers to stop it, or stops
+    /// it when the recording started on its own. Unless a mode is asked for, the screens are
+    /// recorded only while no external display is connected.
+    func startRecording(_ mode: MeetingFolder.RecordingMode = .forDisplays, stopsWithCall: Bool = false) {
         if call != nil {
             startingForCallUntil = .now + 30
+            autoStartingUntil = stopsWithCall ? .now + 30 : .distantPast
         }
         Self.openLitteroi(activating: false, arguments: ["--from-watcher"] + (mode == .audioAndVideo ? ["--video"] : []))
     }
@@ -203,12 +279,14 @@ final class CallWatcher: ObservableObject {
 
 /// Control-Option-T starts a recording from any app, or stops the one going on, Control-Option-V
 /// records the screens too and Control-Option-A leaves them out, from the start or midway,
-/// Control-Option-H hides or shows the menu bar icon and Control-Option-N dismisses a prompt. Carbon hot keys need no accessibility permission, unlike a
-/// global key event monitor. Control-Option-N is held only while a prompt shows, so other apps
-/// keep it the rest of the time.
+/// Control-Option-H hides or shows the menu bar icon, Control-Option-N dismisses a prompt and
+/// Control-Option-L adds a new app or site to the auto list. Carbon hot keys need no accessibility
+/// permission, unlike a global key event monitor. Control-Option-N and L are held only while a
+/// prompt shows, so other apps keep them the rest of the time.
 enum RecordShortcut {
     private static var record: EventHotKeyRef?
     private static var dismiss: EventHotKeyRef?
+    private static var always: EventHotKeyRef?
     private static var video: EventHotKeyRef?
     private static var audio: EventHotKeyRef?
     private static var icon: EventHotKeyRef?
@@ -216,6 +294,7 @@ enum RecordShortcut {
     private static let videoID: UInt32 = 3
     private static let audioID: UInt32 = 4
     private static let iconID: UInt32 = 5
+    private static let alwaysID: UInt32 = 6
 
     static func register() {
         var pressed = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
@@ -226,6 +305,7 @@ enum RecordShortcut {
             MainActor.assumeIsolated {
                 switch key.id {
                 case RecordShortcut.dismissID: CallPrompt.close()
+                case RecordShortcut.alwaysID: CallPrompt.run(key: "L")
                 case RecordShortcut.videoID: CallWatcher.shared.record(.audioAndVideo)
                 case RecordShortcut.audioID: CallWatcher.shared.record(.audio)
                 case RecordShortcut.iconID: CallWatcher.shared.toggleIcon()
@@ -240,17 +320,21 @@ enum RecordShortcut {
         icon = hotKey(kVK_ANSI_H, id: iconID)
     }
 
-    static func registerDismiss() {
+    static func registerPromptKeys(always offersAlways: Bool) {
         if dismiss == nil {
             dismiss = hotKey(kVK_ANSI_N, id: dismissID)
         }
+        if offersAlways, always == nil {
+            always = hotKey(kVK_ANSI_L, id: alwaysID)
+        }
     }
 
-    static func unregisterDismiss() {
-        if let dismiss {
-            UnregisterEventHotKey(dismiss)
-            self.dismiss = nil
+    static func unregisterPromptKeys() {
+        for key in [dismiss, always].compactMap({ $0 }) {
+            UnregisterEventHotKey(key)
         }
+        dismiss = nil
+        always = nil
     }
 
     private static func hotKey(_ key: Int, id: UInt32) -> EventHotKeyRef? {

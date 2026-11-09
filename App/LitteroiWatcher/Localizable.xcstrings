@@ -41,6 +41,26 @@
         }
       }
     },
+    "Aina": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always"
+          }
+        }
+      }
+    },
+    "Aina: litteroi jatkossa itsestään (%@)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always: transcribe on its own from now on (%@)"
+          }
+        }
+      }
+    },
     "Avaa Litteroi-kansio": {
       "localizations": {
         "en": {
@@ -151,6 +171,16 @@
         }
       }
     },
+    "Litteroidaan itsestään": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribed on its own"
+          }
+        }
+      }
+    },
     "Litteroidaanko?": {
       "localizations": {
         "en": {
@@ -247,6 +277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meeting ended (%@)"
+          }
+        }
+      }
+    },
+    "Poista %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@"
           }
         }
       }

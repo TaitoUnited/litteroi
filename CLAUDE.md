@@ -4,10 +4,12 @@ Finnish and English meeting transcription for macOS, fully on-device. Swift pack
 runs Whisper large-v3 through WhisperKit and labels speakers with SpeakerKit (pyannote community-1),
 both from `argmaxinc/argmax-oss-swift`. `litteroi-cli` runs the pipeline on audio files.
 `LitteroiMeetings` knows the meeting folders and deletes old audio. `LitteroiWatch` tells from Core
-Audio when a call app holds the mic. `CSpeexDSP` is SpeexDSP 1.2.1's echo canceller, vendored from
-github.com/xiph/speexdsp under its BSD licence. `App/` is the Mac app, which only records, and
-`LitteroiWatcher`, a launch agent inside it that offers to record when a call starts and to stop
-when it ends, with a menu bar icon while meetings wait for the skill. `skill/` is the `litteroi`
+Audio when a call app holds the mic, reads a browser's page through Accessibility and keeps the
+auto list `~/Litteroi/automaattiset.txt`. `CSpeexDSP` is SpeexDSP 1.2.1's echo canceller, vendored
+from github.com/xiph/speexdsp under its BSD licence. `App/` is the Mac app, which only records, and
+`LitteroiWatcher`, a launch agent inside it that records a call in an app or site of the auto list
+until it ends, offers to record any other call and to add its app or site to the list, with a menu
+bar icon while meetings wait for the skill. `skill/` is the `litteroi`
 skill for Claude Code, which transcribes the recordings and finishes them with Claude: it asks the
 user who each speaker is, then writes the corrected transcript and the minutes.
 [docs/design.md](docs/design.md) holds the decisions behind it.
@@ -39,8 +41,9 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   the mic track carries the user's first name, from macOS, and only the call track is split. Given a
   meeting folder under `~/Litteroi` instead, it transcribes that meeting's tracks into the folder.
 - Meetings: `litteroi-cli status` lists each meeting as `litteroimatta`, `litteroitu` or `valmis`,
-  the one being recorded as `nauhoitetaan (ääni)` or `nauhoitetaan (ääni ja video)`, then its folder
-  and the meeting's name from `nimi.txt` when it has one, and `litteroi-cli transcribe-pending`
+  the one being recorded as `nauhoitetaan (ääni)` or `nauhoitetaan (ääni ja video)`, then its folder,
+  the recording's length while its audio is kept, such as `9 s` or `40 min`, and the meeting's name
+  from `nimi.txt` when it has one, and `litteroi-cli transcribe-pending`
   transcribes the `litteroimatta` ones, skipping the newest while the app is recording it. Both
   transcribe commands also read the names on the screen videos into `nimet-ruudulla.txt`, and
   `litteroi-cli names <meeting folder>` reads them again. `litteroi-cli page <meeting folder>`

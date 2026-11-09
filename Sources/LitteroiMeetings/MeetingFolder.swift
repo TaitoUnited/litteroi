@@ -39,6 +39,10 @@ public struct MeetingFolder: Hashable, Sendable {
     }
     public var mic: URL { url.appending(path: "mic.caf") }
     public var call: URL { url.appending(path: "call.caf") }
+    /// How long the mic track runs, from its size at 16 kHz mono 16-bit; nil once it is deleted.
+    public var duration: TimeInterval? {
+        (try? mic.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map { TimeInterval($0) / 32_000 }
+    }
     /// The video of display `number` from `second` of the meeting on. A recording made before the
     /// screen could be switched on and off midway has one video per display, `screen-<n>.mov`.
     public func screen(_ number: Int, from second: Int = 0) -> URL {
