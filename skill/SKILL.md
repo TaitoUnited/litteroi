@@ -84,7 +84,8 @@ button copies the answers as a prompt that starts `litteroi, vastaukset palaveri
 gives each answer by its question number, and the page keeps what the user typed until then.
 On the page, `j` and `k` select the next and the previous question, `Enter` puts the cursor in its
 field and `Esc` takes it out, space plays and pauses the meeting and `c` copies the answers; the
-selected question lists these keys.
+selected question lists these keys. `Enter` in an answer moves the cursor on to the next question's
+field, and `Shift+Enter` makes a new line.
 
 Every reply that asks about a meeting or finishes it gives its page's `file://` address, with the
 full path from the root, in a `text` block of its own on one line, which the user copies into

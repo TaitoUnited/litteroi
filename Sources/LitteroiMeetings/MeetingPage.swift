@@ -147,12 +147,13 @@ public struct MeetingPage {
 
     static let answerHint = "Nimi, sama kuin toinen puhuja, kahden sekoitus, epäselvä, en tiedä tai muu vastaus"
 
-    /// The keys outside a field, then the one inside it; the page shows one set or the other.
+    /// The keys outside a field, then those inside an answer; the page shows one set or the other.
     static func keys(audio: Bool) -> String {
         let browsing = [("j", "seuraava"), ("k", "edellinen"), ("Enter", "vastaa")]
             + (audio ? [("välilyönti", "toista tai pysäytä")] : []) + [("c", "kopioi vastaukset")]
+        let typing = [("Enter", "seuraava kysymys"), ("Shift+Enter", "uusi rivi"), ("Esc", "pois kentästä")]
         return (browsing.map { "<span class=\"browse\"><kbd>\($0.0)</kbd> \($0.1)</span>" }
-            + ["<span class=\"type\"><kbd>Esc</kbd> pois kentästä</span>"]).joined()
+            + typing.map { "<span class=\"type\"><kbd>\($0.0)</kbd> \($0.1)</span>" }).joined()
     }
 
     /// The Markdown the skill writes: headings, paragraphs and lists nested one level. The
@@ -264,6 +265,7 @@ public struct MeetingPage {
     .question ol { margin-bottom: 4px; }
     .keys { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0 40px; font-size: 13px; color: var(--muted); }
     .keys:not(.typing) .type, .keys.typing .browse { display: none; }
+    .keys.away { visibility: hidden; }
     kbd { font: 12px ui-monospace, Menlo, monospace; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; }
     textarea { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; font-family: inherit;
       font-size: 15px; line-height: 1.4; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
@@ -355,9 +357,9 @@ public struct MeetingPage {
       const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
       scrollTo({ top: top.getBoundingClientRect().top + scrollY - header.offsetHeight - 8, behavior: smooth ? "smooth" : "auto" });
     }
-    function answer() {
+    function answer(preventScroll) {
       const field = questions[selected]?.querySelector("textarea.answer");
-      field?.focus();
+      field?.focus({ preventScroll });
       field?.setSelectionRange(field.value.length, field.value.length);
     }
     document.addEventListener("click", event => {
@@ -365,18 +367,29 @@ public struct MeetingPage {
       if (question) select(questions.indexOf(question), false);
     });
     document.addEventListener("focusin", event => {
-      keys?.classList.toggle("typing", Boolean(event.target.closest("input, textarea, select, [contenteditable]")));
+      const field = event.target.closest("input, textarea, select, [contenteditable]");
+      keys?.classList.toggle("typing", Boolean(field));
+      keys?.classList.toggle("away", Boolean(field) && !field.matches("textarea.answer"));
       const question = event.target.closest(".question");
       if (question) select(questions.indexOf(question), false);
     });
-    document.addEventListener("focusout", () => keys?.classList.remove("typing"));
+    document.addEventListener("focusout", () => keys?.classList.remove("typing", "away"));
     // Chrome's player keeps every key from the page while it has focus.
     for (const type of ["play", "pause", "seeked", "volumechange", "ratechange"]) audio?.addEventListener(type, () => audio.blur());
     document.addEventListener("keydown", event => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
       const field = event.target.closest("input, textarea, select, [contenteditable]");
       if (field) {
-        if (event.key === "Escape") { field.blur(); event.preventDefault(); }
+        if (event.key === "Escape") {
+          field.blur();
+          event.preventDefault();
+        } else if (event.key === "Enter" && !event.shiftKey && field.matches("textarea.answer")) {
+          event.preventDefault();
+          const index = questions.indexOf(field.closest(".question"));
+          if (index === questions.length - 1) { field.blur(); return; }
+          select(index + 1, true);
+          answer(true);
+        }
         return;
       }
       switch (event.key) {

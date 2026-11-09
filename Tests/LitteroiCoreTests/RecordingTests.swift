@@ -154,6 +154,7 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(page.contains(##"id="make-prompt""##))
     #expect(page.contains(##"<div class="keys" id="keys" hidden><span class="browse"><kbd>j</kbd> seuraava</span><span class="browse"><kbd>k</kbd> edellinen</span>"##))
     #expect(page.contains(##"<kbd>välilyönti</kbd> toista tai pysäytä"##))
+    #expect(page.contains(##"<span class="type"><kbd>Enter</kbd> seuraava kysymys</span><span class="type"><kbd>Shift+Enter</kbd> uusi rivi</span>"##))
     #expect(page.contains(##"<span class="type"><kbd>Esc</kbd> pois kentästä</span></div>"##))
     #expect(page.contains(##"<audio id="audio" controls preload="metadata" src="palaveri.m4a">"##))
     #expect(!page.contains("muistio\""))

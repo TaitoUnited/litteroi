@@ -88,7 +88,11 @@
   meetings' questions with the mouse was slow: `j` and `k` select the next and the previous
   question and scroll it to the top, the selected question lists the keys, and `c` copies, here
   the answers. Its own keys are `Enter` and `Esc`, which put the cursor in the selected answer and
-  take it out, and space, which plays and pauses the meeting. No other key acts inside a field.
+  take it out, and space, which plays and pauses the meeting. In an answer, `Enter` ends it and
+  puts the cursor in the next question's field, as the review page's `x` moves on, and
+  `Shift+Enter` makes a new line; the user picked the cursor in the next field over only selecting
+  the next question, which would take one more `Enter` per answer. No other key acts inside a
+  field.
 - `litteroi-cli export` copies a finished meeting, its minutes and corrected transcript in one
   Markdown file, into `~/.claude/projects/<project>/meetings/` of the Claude Code project it
   belongs to, so later sessions there can read it; a note in that project's memory says where.
