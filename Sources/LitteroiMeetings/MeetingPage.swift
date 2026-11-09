@@ -47,7 +47,9 @@ public struct MeetingPage {
 
     public var html: String {
         var sections: [(id: String, heading: String, body: String)] = []
-        if let questions { sections.append(("kysymykset", "Kysymykset", Self.form(questions, folder: folder, name: name))) }
+        if let questions {
+            sections.append(("kysymykset", "Kysymykset", Self.form(questions, folder: folder, name: name, audio: audio != nil)))
+        }
         if let minutes { sections.append(("muistio", "Muistio", Self.blocks(minutes))) }
         sections.append(("litteraatti", "Litteraatti", Self.lines(transcript)))
         let player = audio.map { "<audio id=\"audio\" controls preload=\"metadata\" src=\"\(Self.escape($0))\"></audio>" } ?? ""
@@ -109,7 +111,8 @@ public struct MeetingPage {
 
     /// The questions, each numbered one with a field for its answer, and a button that copies the
     /// answers as a prompt for the litteroi skill. A question left blank stays open in the prompt.
-    static func form(_ markdown: String, folder: String, name: String?) -> String {
+    /// The keys are the pull request review page's where they fit: the selected question lists them.
+    static func form(_ markdown: String, folder: String, name: String?, audio: Bool = false) -> String {
         var preamble: [String] = []
         var questions: [(number: Substring, lines: [String])] = []
         for line in markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
@@ -131,6 +134,7 @@ public struct MeetingPage {
         <form id="answers" data-folder="\(escape(folder))" data-name="\(escape(name ?? ""))">
         \(blocks(preamble.joined(separator: "\n")))
         \(fields.joined(separator: "\n"))
+        <div class="keys" id="keys" hidden>\(keys(audio: audio))</div>
         <label>Sanastoon: termit ja nimet oikein kirjoitettuina, yksi riville
         <textarea id="glossary" rows="3"></textarea></label>
         <label>Muuta, kuten että osa jonkun rivistä on toisen puhetta
@@ -142,6 +146,14 @@ public struct MeetingPage {
     }
 
     static let answerHint = "Nimi, sama kuin toinen puhuja, kahden sekoitus, epäselvä, en tiedä tai muu vastaus"
+
+    /// The keys outside a field, then the one inside it; the page shows one set or the other.
+    static func keys(audio: Bool) -> String {
+        let browsing = [("j", "seuraava"), ("k", "edellinen"), ("Enter", "vastaa")]
+            + (audio ? [("välilyönti", "toista tai pysäytä")] : []) + [("c", "kopioi vastaukset")]
+        return (browsing.map { "<span class=\"browse\"><kbd>\($0.0)</kbd> \($0.1)</span>" }
+            + ["<span class=\"type\"><kbd>Esc</kbd> pois kentästä</span>"]).joined()
+    }
 
     /// The Markdown the skill writes: headings, paragraphs and lists nested one level. The
     /// document's own `#` heading is left out, since each section has its own.
@@ -247,8 +259,12 @@ public struct MeetingPage {
     \((0..<8).map { ".s\($0) b { color: var(--s\($0)); }" }.joined(separator: " "))
     li { margin: 4px 0; }
     code { font: 14px ui-monospace, Menlo, monospace; }
-    .question { margin-bottom: 16px; }
+    .question { margin: 0 -10px 10px; padding: 4px 10px 8px; border-radius: 8px; }
+    .question.selected { box-shadow: 0 0 0 2px var(--link); }
     .question ol { margin-bottom: 4px; }
+    .keys { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0 40px; font-size: 13px; color: var(--muted); }
+    .keys:not(.typing) .type, .keys.typing .browse { display: none; }
+    kbd { font: 12px ui-monospace, Menlo, monospace; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; }
     textarea { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; font-family: inherit;
       font-size: 15px; line-height: 1.4; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
     textarea.answer { margin-left: 40px; width: calc(100% - 40px); }
@@ -281,6 +297,7 @@ public struct MeetingPage {
       const link = event.target.closest("a.t");
       if (!link) return;
       event.preventDefault();
+      if (event.detail) link.blur();
       history.replaceState(null, "", link.getAttribute("href"));
       seek(Number(link.dataset.t), true);
     });
@@ -323,5 +340,69 @@ public struct MeetingPage {
         } catch {}
       });
     }
+    const questions = [...document.querySelectorAll(".question")];
+    const keys = document.getElementById("keys");
+    const header = document.querySelector("header");
+    let selected = -1;
+    function select(index, scroll) {
+      if (!questions.length) return;
+      selected = Math.max(0, Math.min(questions.length - 1, index));
+      questions.forEach((question, i) => question.classList.toggle("selected", i === selected));
+      questions[selected].append(keys);
+      keys.hidden = false;
+      if (!scroll) return;
+      const top = selected === 0 ? questions[0].closest("section") : questions[selected];
+      const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+      scrollTo({ top: top.getBoundingClientRect().top + scrollY - header.offsetHeight - 8, behavior: smooth ? "smooth" : "auto" });
+    }
+    function answer() {
+      const field = questions[selected]?.querySelector("textarea.answer");
+      field?.focus();
+      field?.setSelectionRange(field.value.length, field.value.length);
+    }
+    document.addEventListener("click", event => {
+      const question = event.target.closest(".question");
+      if (question) select(questions.indexOf(question), false);
+    });
+    document.addEventListener("focusin", event => {
+      keys?.classList.toggle("typing", Boolean(event.target.closest("input, textarea, select, [contenteditable]")));
+      const question = event.target.closest(".question");
+      if (question) select(questions.indexOf(question), false);
+    });
+    document.addEventListener("focusout", () => keys?.classList.remove("typing"));
+    // Chrome's player keeps every key from the page while it has focus.
+    for (const type of ["play", "pause", "seeked", "volumechange", "ratechange"]) audio?.addEventListener(type, () => audio.blur());
+    document.addEventListener("keydown", event => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
+      const field = event.target.closest("input, textarea, select, [contenteditable]");
+      if (field) {
+        if (event.key === "Escape") { field.blur(); event.preventDefault(); }
+        return;
+      }
+      switch (event.key) {
+        case "j":
+        case "k":
+          if (document.activeElement !== document.body) document.activeElement.blur();
+          select(event.key === "j" ? selected + 1 : Math.max(0, selected - 1), true);
+          break;
+        case "Enter":
+          if (event.target.closest("a, button, audio, video") || selected < 0) return;
+          answer();
+          break;
+        case " ":
+          if (!audio || event.target.closest("audio, video")) return;
+          if (!event.repeat) { if (audio.paused) audio.play(); else audio.pause(); }
+          break;
+        case "c":
+          if (!answers) return;
+          document.getElementById("make-prompt").click();
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+    });
+    const unanswered = questions.findIndex(question => !question.querySelector("textarea.answer").value.trim());
+    select(unanswered < 0 ? 0 : unanswered, unanswered > 0 && !location.hash);
     """
 }

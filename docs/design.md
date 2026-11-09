@@ -84,6 +84,11 @@
   audio, the tool does the copying. Each question has a field for its answer, with fields for
   glossary terms and other notes, and a button copies the answers as a prompt for the skill,
   numbered as the questions are. The page keeps them in Firefox's local storage meanwhile.
+- The page's keys are the pull request review page's where they fit, since answering five
+  meetings' questions with the mouse was slow: `j` and `k` select the next and the previous
+  question and scroll it to the top, the selected question lists the keys, and `c` copies, here
+  the answers. Its own keys are `Enter` and `Esc`, which put the cursor in the selected answer and
+  take it out, and space, which plays and pauses the meeting. No other key acts inside a field.
 - `litteroi-cli export` copies a finished meeting, its minutes and corrected transcript in one
   Markdown file, into `~/.claude/projects/<project>/meetings/` of the Claude Code project it
   belongs to, so later sessions there can read it; a note in that project's memory says where.
