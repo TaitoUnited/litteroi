@@ -417,5 +417,6 @@ public struct MeetingPage {
     });
     const unanswered = questions.findIndex(question => !question.querySelector("textarea.answer").value.trim());
     select(unanswered < 0 ? 0 : unanswered, unanswered > 0 && !location.hash);
+    if (!location.hash) answer(true);
     """
 }

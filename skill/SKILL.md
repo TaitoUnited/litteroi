@@ -82,6 +82,7 @@ the same person as another label, a mix of two voices or don't know, and the pag
 terms to add to the glossary and for other notes, such as part of a line being someone else's. Its
 button copies the answers as a prompt that starts `litteroi, vastaukset palaveriin <folder>` and
 gives each answer by its question number, and the page keeps what the user typed until then.
+The page opens with the cursor in the first unanswered question's field.
 On the page, `j` and `k` select the next and the previous question, `Enter` puts the cursor in its
 field and `Esc` takes it out, space plays and pauses the meeting and `c` copies the answers; the
 selected question lists these keys. `Enter` in an answer moves the cursor on to the next question's

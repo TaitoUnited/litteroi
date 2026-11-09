@@ -92,7 +92,9 @@
   puts the cursor in the next question's field, as the review page's `x` moves on, and
   `Shift+Enter` makes a new line; the user picked the cursor in the next field over only selecting
   the next question, which would take one more `Enter` per answer. No other key acts inside a
-  field.
+  field. The page opens with the cursor in the first unanswered question's field, as the user
+  asked, so the first answer needs no key; an address that names a transcript line opens on that
+  line instead, with no field in focus.
 - `litteroi-cli export` copies a finished meeting, its minutes and corrected transcript in one
   Markdown file, into `~/.claude/projects/<project>/meetings/` of the Claude Code project it
   belongs to, so later sessions there can read it; a note in that project's memory says where.
