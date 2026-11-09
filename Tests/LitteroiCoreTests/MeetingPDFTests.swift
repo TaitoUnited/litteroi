@@ -25,7 +25,9 @@ import Testing
     try "# 2026-11-05-0844\n\n\(lines.joined(separator: "\n\n"))\n".write(to: meeting.corrected, atomically: true, encoding: .utf8)
 
     let speakers = MeetingPDF(meeting: meeting)
-    #expect(speakers.fileName == "litterointi-sisainen-meks-daily-5-nov.pdf")
+    #expect(speakers.fileName == "thu-5-nov-2026-sisainen-meks-daily-transcription.pdf")
+    try "daily sis-meks\n".write(to: meeting.shortNameFile, atomically: true, encoding: .utf8)
+    #expect(speakers.fileName == "daily-thu-5-nov-2026-sis-meks-transcription.pdf")
     let document = try #require(PDFDocument(data: try speakers.data()))
     let text = try #require(document.string)
     #expect(document.pageCount > 1)

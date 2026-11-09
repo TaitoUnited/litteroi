@@ -100,11 +100,14 @@
   and a meeting is not. The skill picks the project from the meeting and asks when none fits.
 - `litteroi-cli pdf` writes the corrected transcript as an A4 PDF to share, since Slack cuts a
   message at 40,000 characters, less than an hour of transcript. AppKit's text system lays it out in
-  Helvetica Neue, so it needs no LibreOffice, whose headless run sees only its own fonts. The skill
-  then drafts the share with the decisions and action items in the message's text, since Slack's
-  search finds no word inside a PDF, and posts it where the project's memory says, or asks once and
-  writes the answer there. The draft says the meeting was recorded, since Litteroi tells no one else
-  in the call.
+  Helvetica Neue, so it needs no LibreOffice, whose headless run sees only its own fonts. Its name
+  is the kind and short name of `lyhenne.txt` around the date, such as
+  `daily-mon-9-nov-2026-sis-meks-transcription.pdf`, as the user asked, and the date and the
+  meeting's whole name without the file. The skill then drafts the share as one line, the meeting,
+  that it was recorded and transcribed, and its topics as search words, since people read the PDF
+  and Slack's search finds no word inside one. It goes where the project's memory says, or the skill
+  asks once and writes the answer there. The line says the meeting was recorded, since Litteroi
+  tells no one else in the call.
 - The skill starts Whisper (`litteroi-cli transcribe-pending`) for every recorded meeting, in
   the background, and finishes the meetings already transcribed meanwhile. Whisper takes about
   20 minutes per hour of audio. A meeting the app is still recording is left for the next run.
@@ -226,7 +229,7 @@
 - `~/Litteroi/<yyyy-mm-dd-hhmm>/` holds `mic.caf`, `call.caf`, `screen-<n>-<second>.mov` for each
   display and stretch of screen recording, `.nauhoitus` while the app records,
   `transcript.md` and `transcript.json`, `nimet-ruudulla.txt` when the screens were recorded,
-  `nimi.txt`, `kysymykset.md` while the skill waits for the user's
+  `nimi.txt`, `lyhenne.txt`, `kysymykset.md` while the skill waits for the user's
   answers, once Claude has finished the meeting `korjattu.md` and `muistio.md`, and the page
   `palaveri.html` with `palaveri.m4a` and a `.mp4` copy of each screen video. Not `~/Documents`
   (iCloud sync) and not inside the app bundle.

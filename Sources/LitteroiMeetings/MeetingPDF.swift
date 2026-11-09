@@ -26,18 +26,24 @@ public struct MeetingPDF {
         return formatter.date(from: String(meeting.title.prefix(15)))
     }
 
-    /// Such as `litterointi-sisainen-meks-daily-5-nov.pdf`.
+    /// Such as `daily-mon-9-nov-2026-sis-meks-transcription.pdf` for the short name `daily sis-meks`,
+    /// or `mon-9-nov-2026-sisainen-meks-weekly-transcription.pdf` from the meeting's name without one.
     public var fileName: String {
-        let name = (meeting.name ?? (english ? "meeting" : "palaveri"))
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+        let words = (meeting.shortName ?? "").split(whereSeparator: \.isWhitespace)
+        let kind = words.first.map { Self.slug(String($0)) }
+        let name = Self.slug(words.count > 1 ? words.dropFirst().joined(separator: " ") : meeting.name ?? "meeting")
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "EEE-d-MMM-yyyy"
+        let day = date.map { formatter.string(from: $0).lowercased() }
+        return [kind, day, name, "transcription"].compactMap { $0 }.joined(separator: "-") + ".pdf"
+    }
+
+    static func slug(_ text: String) -> String {
+        text.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
             .split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }
             .joined(separator: "-")
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "d-MMM"
-        let day = date.map { "-" + formatter.string(from: $0).lowercased() } ?? ""
-        return "\(english ? "transcript" : "litterointi")-\(name)\(day).pdf"
     }
 
     public func data() throws -> Data {

@@ -33,9 +33,14 @@ public struct MeetingFolder: Hashable, Sendable {
     public var title: String { url.lastPathComponent }
     /// What the meeting was, such as its calendar event's title, written by the skill.
     public var nameFile: URL { url.appending(path: "nimi.txt") }
-    public var name: String? {
-        let name = (try? String(contentsOf: nameFile, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return name?.isEmpty == false ? name : nil
+    public var name: String? { Self.text(of: nameFile) }
+    /// The kind of meeting in a word, then a short name for it, such as `daily sis-meks`, which the
+    /// shared PDF is named after; written by the skill.
+    public var shortNameFile: URL { url.appending(path: "lyhenne.txt") }
+    public var shortName: String? { Self.text(of: shortNameFile) }
+    static func text(of file: URL) -> String? {
+        let text = (try? String(contentsOf: file, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text?.isEmpty == false ? text : nil
     }
     public var mic: URL { url.appending(path: "mic.caf") }
     public var call: URL { url.appending(path: "call.caf") }
