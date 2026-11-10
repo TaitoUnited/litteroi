@@ -50,16 +50,18 @@ final class MicRecorder {
 
 /// Records what the Mac plays, which on a call is the other participants, through a Core Audio
 /// process tap on every process but Litteroi. Needs the system audio recording permission;
-/// without it the track stays silent and the meeting is treated as one without a call. The tap's
-/// format follows the output device's, which changes when a Bluetooth headset switches from its
-/// call profile back to music as the call lets go of the mic.
+/// without it the track stays silent and the meeting is treated as one without a call. The IO
+/// proc delivers the tap at the rate of the aggregate device, which follows the output device's,
+/// not at the rate the tap reports: AirPods in their call profile run at 24 kHz while the tap
+/// still reports 48 kHz, and a Signal call read at the tap's rate played at double speed. The
+/// rate changes again when the headset switches back to music as the call lets go of the mic.
 final class SystemAudioRecorder {
     let writer: TrackWriter
     private let queue = DispatchQueue(label: "fi.taitounited.litteroi.system-audio", qos: .userInitiated)
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var procID: AudioDeviceIOProcID?
-    /// Read and written on `queue` only, by the IO proc and the format listener.
+    /// Read and written on `queue` only, by the IO proc and the format listeners.
     private var format: AVAudioFormat?
     private var formatListener: AudioObjectPropertyListenerBlock?
 
@@ -75,18 +77,6 @@ final class SystemAudioRecorder {
         description.isPrivate = true
         description.muteBehavior = .unmuted
         try CoreAudio.check(AudioHardwareCreateProcessTap(description, &tapID), "AudioHardwareCreateProcessTap")
-
-        var streamFormat = try CoreAudio.tapFormat(tapID)
-        guard let format = AVAudioFormat(streamDescription: &streamFormat) else { throw RecorderError.unsupportedFormat }
-        self.format = format
-        let tapID = tapID
-        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            guard var description = try? CoreAudio.tapFormat(tapID) else { return }
-            self?.format = AVAudioFormat(streamDescription: &description)
-        }
-        var formatAddress = CoreAudio.tapFormatAddress
-        try CoreAudio.check(AudioObjectAddPropertyListenerBlock(tapID, &formatAddress, queue, listener), "AddPropertyListener")
-        formatListener = listener
 
         let outputUID = try CoreAudio.defaultOutputDeviceUID()
         let aggregate: [String: Any] = [
@@ -104,6 +94,17 @@ final class SystemAudioRecorder {
         ]
         try CoreAudio.check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &aggregateID), "AudioHardwareCreateAggregateDevice")
 
+        format = try ioFormat()
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            guard let self, let format = try? self.ioFormat() else { return }
+            self.format = format
+        }
+        var tapFormat = CoreAudio.tapFormatAddress
+        try CoreAudio.check(AudioObjectAddPropertyListenerBlock(tapID, &tapFormat, queue, listener), "AddPropertyListener")
+        var sampleRate = CoreAudio.nominalSampleRateAddress
+        try CoreAudio.check(AudioObjectAddPropertyListenerBlock(aggregateID, &sampleRate, queue, listener), "AddPropertyListener")
+        formatListener = listener
+
         try CoreAudio.check(AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, queue) { [weak self] _, input, _, _, _ in
             guard let self, let format = self.format else { return }
             try? self.writer.append(input, format: format)
@@ -111,11 +112,22 @@ final class SystemAudioRecorder {
         try CoreAudio.check(AudioDeviceStart(aggregateID, procID), "AudioDeviceStart")
     }
 
+    private func ioFormat() throws -> AVAudioFormat {
+        let tap = try CoreAudio.tapFormat(tapID)
+        let sampleRate = try CoreAudio.nominalSampleRate(aggregateID)
+        guard let format = TrackWriter.ioFormat(tap: tap, deviceSampleRate: sampleRate) else { throw RecorderError.unsupportedFormat }
+        return format
+    }
+
     func stop() {
         if aggregateID != kAudioObjectUnknown {
             AudioDeviceStop(aggregateID, procID)
             if let procID {
                 AudioDeviceDestroyIOProcID(aggregateID, procID)
+            }
+            if let formatListener {
+                var sampleRate = CoreAudio.nominalSampleRateAddress
+                AudioObjectRemovePropertyListenerBlock(aggregateID, &sampleRate, queue, formatListener)
             }
             AudioHardwareDestroyAggregateDevice(aggregateID)
         }
@@ -280,6 +292,20 @@ private enum CoreAudio {
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         try check(AudioObjectGetPropertyData(tap, &address, 0, nil, &size, &format), "kAudioTapPropertyFormat")
         return format
+    }
+
+    static let nominalSampleRateAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyNominalSampleRate,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+
+    static func nominalSampleRate(_ device: AudioObjectID) throws -> Double {
+        var address = nominalSampleRateAddress
+        var rate: Float64 = 0
+        var size = UInt32(MemoryLayout<Float64>.size)
+        try check(AudioObjectGetPropertyData(device, &address, 0, nil, &size, &rate), "kAudioDevicePropertyNominalSampleRate")
+        return rate
     }
 
     static func defaultOutputDeviceUID() throws -> String {

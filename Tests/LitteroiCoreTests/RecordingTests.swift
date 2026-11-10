@@ -105,14 +105,35 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(partial.count > 16_000)
 }
 
+@Test func readsATapAtTheRateItsDeviceRunsAt() throws {
+    let url = try temporaryFolder().appending(path: "call.caf")
+    let writer = try TrackWriter(url: url)
+    let tap = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 2)!
+    let format = try #require(TrackWriter.ioFormat(tap: tap.streamDescription.pointee, deviceSampleRate: 24_000))
+    let delivered = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 2)!
+    for _ in 0..<100 {
+        let cycle = sine(delivered, seconds: 0.01)
+        try withExtendedLifetime(cycle) {
+            try writer.append(cycle.audioBufferList, format: format)
+        }
+    }
+    writer.close()
+    let audio = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
+    #expect(abs(audio.count - 16_000) < 400)
+}
+
 @Test func skipsABufferListLaidOutForAnotherFormat() throws {
     let writer = try TrackWriter(url: try temporaryFolder().appending(path: "call.caf"))
     let mono = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1)!
     let stereo = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 2)!
     let interleaved = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: 2, interleaved: true)!
+    var noChannels = AudioStreamBasicDescription()
+    noChannels.mSampleRate = 48_000
+    let empty = AVAudioFormat(streamDescription: &noChannels)!
     let buffer = sine(mono, seconds: 0.1)
     try writer.append(buffer.audioBufferList, format: stereo)
     try writer.append(buffer.audioBufferList, format: interleaved)
+    try writer.append(buffer.audioBufferList, format: empty)
     #expect(writer.level == 0)
     try writer.append(buffer.audioBufferList, format: mono)
     #expect(writer.level > 0.5)
@@ -133,6 +154,14 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(!MeetingTranscriber.hasSound(silence))
     #expect(!MeetingTranscriber.hasSound(ding))
     #expect(MeetingTranscriber.hasSound(speech))
+}
+
+@Test func warnsWhenTheCallTrackIsFarFromTheMicTracksLength() {
+    let second = 16_000
+    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 509 * second) == nil)
+    #expect(MeetingTranscriber.lengthWarning(mic: 30 * second, call: 22 * second) == nil)
+    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 256 * second)?.hasPrefix("Puhelun raita on 256 s ja mikrofonin 512 s.") == true)
+    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 1024 * second) != nil)
 }
 
 @Test func rendersAPageWhoseTimestampsPlayTheMeeting() {

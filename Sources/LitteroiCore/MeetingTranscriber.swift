@@ -18,7 +18,12 @@ public struct MeetingTranscriber {
         self.modelsFolder = modelsFolder
     }
 
-    public func transcribe(mic: URL, call: URL?, progress: (String) -> Void = { _ in }) async throws -> Transcript {
+    public func transcribe(
+        mic: URL,
+        call: URL?,
+        progress: (String) -> Void = { _ in },
+        warning: (String) -> Void = { _ in }
+    ) async throws -> Transcript {
         progress("Ladataan Whisper-malli (\(Self.whisperModel))")
         let whisper = try await loadWhisper()
 
@@ -30,6 +35,9 @@ public struct MeetingTranscriber {
             let micChunks = try await chunked(micAudio, at: Self.turnStarts(of: speakers), with: whisper)
             let (results, language) = try await transcribed([("Litteroidaan mikrofoni", micChunks)], with: whisper, progress: progress)
             return Transcript(utterances: Self.labelled(results[0], by: speakers, in: language))
+        }
+        if let mismatch = Self.lengthWarning(mic: micAudio.count, call: callAudio.count) {
+            warning(mismatch)
         }
 
         progress("Poistetaan puhelun kaiku mikrofonista")
@@ -213,6 +221,17 @@ public struct MeetingTranscriber {
             start += frameLength
         }
         return false
+    }
+
+    /// Both tracks run from the start of the recording to its end, the call's a few seconds late
+    /// at most, so a call track far shorter or longer than the mic track was recorded at the wrong
+    /// rate: it plays too fast or too slow, and its timestamps are off.
+    static func lengthWarning(mic: Int, call: Int, sampleRate: Int = 16_000) -> String? {
+        let micSeconds = mic / sampleRate
+        let callSeconds = call / sampleRate
+        guard abs(callSeconds - micSeconds) > max(10, micSeconds / 10) else { return nil }
+        return "Puhelun raita on \(callSeconds) s ja mikrofonin \(micSeconds) s. Puhelu on luultavasti nauhoitettu "
+            + "väärällä näytetaajuudella, joten se soi liian nopeasti tai hitaasti ja sen aikaleimat ovat väärin."
     }
 
     private func diarized(_ audio: [Float]) async throws -> DiarizationResult {

@@ -47,6 +47,10 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
    ~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli transcribe-pending
    ```
 
+   A `Varoitus` line means that meeting's call track was recorded at the wrong rate, so its call
+   side is likely nonsense: name the meeting and both lengths in the reply, and finish it only
+   once the user has had the track repaired or says to go on.
+
 4. Read each `litteroitu` meeting's `transcript.md`, its `nimet-ruudulla.txt` when it has one,
    and `~/Litteroi/sanasto.txt`, name the meeting as below and write `korjattu.md`, with the
    speaker labels the user has not named yet left as they are. Then write the questions about who

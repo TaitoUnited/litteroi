@@ -17,6 +17,10 @@
   through a Core Audio process tap (macOS 14.2+, `NSAudioCaptureUsageDescription`, "system audio
   recording" permission). A tap on call apps alone would miss a browser call whose audio process
   starts after the recording. A call track with under 10 s of sound is dropped as no call.
+- The call track is read at the aggregate device's sample rate, not the rate the tap reports.
+  AirPods in their call profile run at 24 kHz while the tap reports 48 kHz, so Signal calls
+  recorded before 10.11.2026 play at double speed. `litteroi-cli transcribe` warns when a call
+  track's length differs from its mic track's by over 10 s and over 10 %.
 - When the screens are recorded, every display is, one video each, so what was shown in a meeting
   can be looked up later: ScreenCaptureKit, H.265, up to 2 frames a second and at most 1920 points
   wide. ScreenCaptureKit sends a frame only when the screen changes, so a slide left up costs next

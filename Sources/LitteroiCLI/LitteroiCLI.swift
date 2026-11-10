@@ -99,6 +99,8 @@ private func transcribe(mic: URL, call: URL?, into folder: URL, title: String, m
     let started = Date()
     let transcript = try await transcriber.transcribe(mic: mic, call: call) { step in
         FileHandle.standardError.write(Data("\(step)...\n".utf8))
+    } warning: { warning in
+        FileHandle.standardError.write(Data("Varoitus, \(title): \(warning)\n".utf8))
     }
     try transcript.write(to: folder, title: title)
     let seconds = Int(Date().timeIntervalSince(started))
