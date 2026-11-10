@@ -212,6 +212,10 @@ Muutama kappale siitä, mitä palaverissa käsiteltiin.
 
 Leave out a section with nothing in it.
 
+The minutes state only what a line of `korjattu.md` says. An answer the recording does not hold,
+such as one read from how the asker reacted to it, goes under `Epäselvät kohdat` with the time of
+the question, never into the summary as a fact: a later session plans on what the minutes say.
+
 ## The project's copy
 
 Once `muistio.md` is written, the meeting is copied as one Markdown file, the minutes and then the
