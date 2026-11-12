@@ -82,15 +82,25 @@ from that moment, and the screen videos show what was on screen then. The first 
 tracks into `palaveri.m4a` and copies each screen video as an `.mp4`, which Firefox plays.
 
 Each numbered question in `kysymykset.md` gets a field on the page for its answer, such as a name,
-the same person as another label, a mix of two voices or don't know, and the page has fields for
-terms to add to the glossary and for other notes, such as part of a line being someone else's. Its
+the same person as another label, a mix of two voices or don't know; a term for the glossary or a
+note, such as part of a line being someone else's, goes into the answer it belongs to. Its
 button copies the answers as a prompt that starts `litteroi, vastaukset palaveriin <folder>` and
 gives each answer by its question number, and the page keeps what the user typed until then.
 The page opens with the cursor in the first unanswered question's field.
 On the page, `j` and `k` select the next and the previous question, `Enter` puts the cursor in its
-field and `Esc` takes it out, space plays and pauses the meeting and `c` copies the answers; the
-selected question lists these keys. `Enter` in an answer moves the cursor on to the next question's
-field, and `Shift+Enter` makes a new line.
+field and `Esc` takes it out, space plays and pauses the meeting, `n` plays the selected question's
+next quoted line and `c` copies the answers; the selected question lists these keys. `Enter` in an
+answer moves the cursor on to the next question's field, `Shift+Enter` makes a new line, and
+`Ctrl+P` and `Ctrl+N` play and pause and play the next quoted line from inside the field.
+
+A quoted line under a question plays from where its quoted part is said to half a second after it
+ends, by the word times in `transcript.json`, so cut a long line to the part that matters and leave
+the rest to the page. A transcript from before 10.11.2026 has no word times and its quoted lines
+play from the line's start; this adds them, at about 20 minutes per hour of audio:
+
+```bash
+~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli words ~/Litteroi/<meeting>
+```
 
 Every reply that asks about a meeting or finishes it gives its page's `file://` address, with the
 full path from the root, in a `text` block of its own on one line, which the user copies into
@@ -129,8 +139,8 @@ instead. For every other speaker label, `Puhuja 1` or `Speaker 1` and so on, giv
 with what it rests on, then the context of one or two of that speaker's lines, picked to show who it
 is, such as a greeting by name or the speaker's own topic: the line before, the speaker's line and
 the line after, each with its timestamp and label, a long line cut to its part that matters with
-`...`. Add a time a few seconds before to listen from, and list the speaker's other short lines with
-their times. Number the speakers, one meeting after another under the meeting's folder name, so the
+`...`. List the speaker's other short lines with their times; no time to listen from, since the
+page plays each quoted line from its quoted part. Number the speakers, one meeting after another under the meeting's folder name, so the
 user can answer each by its number. Ask too about a name the transcript spells two ways or that
 Whisper may have misheard. The user may confirm a guess, give a name, say two labels are one person,
 say a label mixes two people, call its lines unclear, which makes them `Epäselvä`, or say they do
@@ -280,5 +290,5 @@ command.
 `~/Litteroi/sanasto.txt` holds terms and names as they should be written, one per line: people
 first, then organisations, then product, tool and technical terms. It grows as meetings are
 finished: in step 5, add every name the user confirmed, every term or name Claude corrected in
-`korjattu.md` that is not a guess marked `[?]`, and every term the prompt lists under `Sanastoon`,
+`korjattu.md` that is not a guess marked `[?]`, and every term an answer spells out for it,
 each in its group and only when the file does not have it yet. The reply names what was added.

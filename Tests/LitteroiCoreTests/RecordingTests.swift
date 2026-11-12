@@ -3,6 +3,7 @@ import Foundation
 import Testing
 import WhisperKit
 @testable import LitteroiCore
+@testable import LitteroiMeetings
 
 private func temporaryFolder() throws -> URL {
     let url = FileManager.default.temporaryDirectory.appending(path: "litteroi-tests-\(UUID().uuidString)")
@@ -174,7 +175,7 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(page.contains(##"<p class="line s0" id="t-00-00-06"><a class="t" href="#t-00-00-06" data-t="6">00:00:06</a> <b>Minä:</b> Huomenta.</p>"##))
     #expect(page.contains(##"id="t-00-00-06-2""##))
     #expect(page.contains(##"<ol start="15"><li>"##))
-    #expect(page.contains(##"<a class="t" href="#t-00-04-05" data-t="245">00:04:05</a> <b>Puhuja 4:</b> Kiitos Klara."##))
+    #expect(page.contains(##"<a class="t clip" href="#t-00-04-05" data-t="245">00:04:05</a> <b>Puhuja 4:</b> Kiitos Klara."##))
     #expect(page.contains("Kuka &lt;muu&gt;?"))
     #expect(page.contains(##"<form id="answers" data-folder="~/Litteroi/2026-11-04-0845" data-name="">"##))
     #expect(page.contains(##"<textarea class="answer" data-q="15""##))
@@ -182,9 +183,11 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(page.contains(##"<ol start="16"><li>"##))
     #expect(page.contains(##"id="make-prompt""##))
     #expect(page.contains(##"<div class="keys" id="keys" hidden><span class="browse"><kbd>j</kbd> seuraava</span><span class="browse"><kbd>k</kbd> edellinen</span>"##))
-    #expect(page.contains(##"<kbd>välilyönti</kbd> toista tai pysäytä"##))
+    #expect(page.contains(##"<kbd>välilyönti</kbd> toista tai pysäytä</span><span class="browse"><kbd>n</kbd> seuraava pätkä"##))
+    #expect(page.contains("function nextClip()"))
     #expect(page.contains(##"<span class="type"><kbd>Enter</kbd> seuraava kysymys</span><span class="type"><kbd>Shift+Enter</kbd> uusi rivi</span>"##))
-    #expect(page.contains(##"<span class="type"><kbd>Esc</kbd> pois kentästä</span></div>"##))
+    #expect(page.contains(##"<span class="type"><kbd>Ctrl+P</kbd> toista tai pysäytä</span><span class="type"><kbd>Ctrl+N</kbd> seuraava pätkä</span><span class="type"><kbd>Esc</kbd> pois kentästä</span></div>"##))
+    #expect(!page.contains("glossary") && !page.contains("Sanastoon") && !page.contains("Muuta"))
     #expect(page.contains("if (!location.hash) answer(true);"))
     #expect(page.contains(##"<audio id="audio" controls preload="metadata" src="palaveri.m4a">"##))
     #expect(!page.contains("muistio\""))
@@ -192,7 +195,25 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
 
     let silent = MeetingPage(title: "2026-11-04-0845", questions: "1. Kuka?\n", transcript: "").html
     #expect(silent.contains(##"<kbd>c</kbd> kopioi vastaukset"##))
-    #expect(!silent.contains("välilyönti"))
+    #expect(!silent.contains("välilyönti") && !silent.contains("Ctrl+P"))
+}
+
+@Test func startsAQuotedLineWhereItsQuotedPartIsSaid() {
+    let heard = ["Mitäs?", "Onko", "jotain", "akuuttia?", "Jännittävää!", "Ja", "Mitja,", "jääksää", "vähän", "sekuntiksi", "tähän", "vielä,"]
+    let line = TimedLine(start: 600, end: 640, words: heard.enumerated().map {
+        TimedLine.Word(start: 600 + Double($0.offset) * 3, end: 602.5 + Double($0.offset) * 3, text: $0.element)
+    })
+    let page = MeetingPage(
+        title: "2026-11-10-0841",
+        questions: "1. **Puhuja 1**: Emma? Other line: 00:10:00.\n    - [00:10:00] **Puhuja 1:** ... Ja Mitja, jääksä vähän sekunniksi tähän [epäselvä] vielä,\n    - [00:09:00] **Akira:** Joo.\n",
+        transcript: "",
+        lines: [TimedLine(start: 600.4, end: 601), line]
+    ).html
+    #expect(page.contains(##"Other line: <a class="t" href="#t-00-10-00" data-t="600">00:10:00</a>."##))
+    #expect(page.contains(##"<a class="t clip" href="#t-00-10-00" data-t="615" data-end="635.5">00:10:00</a> <b>Puhuja 1:</b>"##))
+    #expect(page.contains(##"<a class="t clip" href="#t-00-09-00" data-t="540">00:09:00</a> <b>Akira:</b> Joo."##))
+    #expect(line.clip(of: "Aivan muuta puhetta tässä")?.clip == nil)
+    #expect(line.clip(of: "Mitäs? Onko jotain akuuttia? ... vähän sekunniksi ...")?.clip == Clip(start: 600, end: 629.5))
 }
 
 @Test func ordersScreenVideosByTheSecondTheyStartAt() throws {

@@ -12,18 +12,22 @@ public struct MeetingPage {
     public var questions: String?
     public var minutes: String?
     public var transcript: String
+    /// When each word of each line was said, which the questions' clips start and end by.
+    public var lines: [TimedLine]
     /// File names next to the page.
     public var audio: String?
     public var screens: [String]
 
     public init(title: String, folder: String? = nil, name: String? = nil, questions: String? = nil,
-                minutes: String? = nil, transcript: String, audio: String? = nil, screens: [String] = []) {
+                minutes: String? = nil, transcript: String, lines: [TimedLine] = [], audio: String? = nil,
+                screens: [String] = []) {
         self.title = title
         self.folder = folder ?? "~/Litteroi/\(title)"
         self.name = name
         self.questions = questions
         self.minutes = minutes
         self.transcript = transcript
+        self.lines = lines
         self.audio = audio
         self.screens = screens
     }
@@ -39,6 +43,7 @@ public struct MeetingPage {
             questions: read(meeting.questions),
             minutes: read(meeting.minutes),
             transcript: try read(meeting.corrected) ?? String(contentsOf: meeting.transcript, encoding: .utf8),
+            lines: TimedLine.read(meeting.transcriptJSON),
             audio: files.fileExists(atPath: meeting.listening.path) ? meeting.listening.lastPathComponent : nil,
             screens: meeting.screens.map(meeting.browserCopy(of:)).filter { files.fileExists(atPath: $0.path) }
                 .map(\.lastPathComponent)
@@ -48,7 +53,7 @@ public struct MeetingPage {
     public var html: String {
         var sections: [(id: String, heading: String, body: String)] = []
         if let questions {
-            sections.append(("kysymykset", "Kysymykset", Self.form(questions, folder: folder, name: name, audio: audio != nil)))
+            sections.append(("kysymykset", "Kysymykset", Self.form(questions, folder: folder, name: name, audio: audio != nil, lines: lines)))
         }
         if let minutes { sections.append(("muistio", "Muistio", Self.blocks(minutes))) }
         sections.append(("litteraatti", "Litteraatti", Self.lines(transcript)))
@@ -112,7 +117,15 @@ public struct MeetingPage {
     /// The questions, each numbered one with a field for its answer, and a button that copies the
     /// answers as a prompt for the litteroi skill. A question left blank stays open in the prompt.
     /// The keys are the pull request review page's where they fit: the selected question lists them.
-    static func form(_ markdown: String, folder: String, name: String?, audio: Bool = false) -> String {
+    /// A sub-item that quotes a transcript line is a clip, played from where its quoted part starts.
+    static func form(_ markdown: String, folder: String, name: String?, audio: Bool = false,
+                     lines: [TimedLine] = []) -> String {
+        let quoted = #/^\[(\d\d):(\d\d):(\d\d)\] \*\*.+?:\*\* ?(.*)$/#
+        func clip(_ item: String) -> Clip? {
+            guard let match = item.wholeMatch(of: quoted) else { return nil }
+            let second = Int(match.1)! * 3600 + Int(match.2)! * 60 + Int(match.3)!
+            return TimedLine.clip(of: String(match.4), at: second, in: lines) ?? Clip(start: Double(second))
+        }
         var preamble: [String] = []
         var questions: [(number: Substring, lines: [String])] = []
         for line in markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
@@ -126,7 +139,7 @@ public struct MeetingPage {
         }
         let fields = questions.map {
             """
-            <div class="question">\(blocks($0.lines.joined(separator: "\n")))
+            <div class="question">\(blocks($0.lines.joined(separator: "\n"), clip: clip))
             <textarea class="answer" data-q="\($0.number)" rows="2" placeholder="\(answerHint)"></textarea></div>
             """
         }
@@ -135,10 +148,6 @@ public struct MeetingPage {
         \(blocks(preamble.joined(separator: "\n")))
         \(fields.joined(separator: "\n"))
         <div class="keys" id="keys" hidden>\(keys(audio: audio))</div>
-        <label>Sanastoon: termit ja nimet oikein kirjoitettuina, yksi riville
-        <textarea id="glossary" rows="3"></textarea></label>
-        <label>Muuta, kuten että osa jonkun rivistä on toisen puhetta
-        <textarea id="notes" rows="3"></textarea></label>
         <p><button type="button" id="make-prompt">Kopioi vastaukset kehotteeksi</button> <span id="prompt-status"></span></p>
         <textarea id="prompt" rows="8" readonly hidden></textarea>
         </form>
@@ -150,15 +159,17 @@ public struct MeetingPage {
     /// The keys outside a field, then those inside an answer; the page shows one set or the other.
     static func keys(audio: Bool) -> String {
         let browsing = [("j", "seuraava"), ("k", "edellinen"), ("Enter", "vastaa")]
-            + (audio ? [("välilyönti", "toista tai pysäytä")] : []) + [("c", "kopioi vastaukset")]
-        let typing = [("Enter", "seuraava kysymys"), ("Shift+Enter", "uusi rivi"), ("Esc", "pois kentästä")]
+            + (audio ? [("välilyönti", "toista tai pysäytä"), ("n", "seuraava pätkä")] : []) + [("c", "kopioi vastaukset")]
+        let typing = [("Enter", "seuraava kysymys"), ("Shift+Enter", "uusi rivi")]
+            + (audio ? [("Ctrl+P", "toista tai pysäytä"), ("Ctrl+N", "seuraava pätkä")] : []) + [("Esc", "pois kentästä")]
         return (browsing.map { "<span class=\"browse\"><kbd>\($0.0)</kbd> \($0.1)</span>" }
             + typing.map { "<span class=\"type\"><kbd>\($0.0)</kbd> \($0.1)</span>" }).joined()
     }
 
     /// The Markdown the skill writes: headings, paragraphs and lists nested one level. The
-    /// document's own `#` heading is left out, since each section has its own.
-    static func blocks(_ markdown: String) -> String {
+    /// document's own `#` heading is left out, since each section has its own. `clip` gives the
+    /// clip of a list item that is one.
+    static func blocks(_ markdown: String, clip: (String) -> Clip? = { _ in nil }) -> String {
         let item = #/^( *)([-*]|(\d+)\.) +(.*)$/#
         var html: [String] = []
         var paragraph: [String] = []
@@ -200,7 +211,7 @@ public struct MeetingPage {
                     html.append(match.3.map { "<ol start=\"\($0)\"><li>" } ?? "<ul><li>")
                     lists.append((tag, indent))
                 }
-                html.append(inline(String(match.4)))
+                html.append(inline(String(match.4), clip: clip(String(match.4))))
                 continue
             }
             if lists.isEmpty {
@@ -214,17 +225,28 @@ public struct MeetingPage {
         return html.joined(separator: "\n")
     }
 
-    static func inline(_ text: String) -> String {
-        escape(text)
+    /// A clip's own timestamp, the one its text starts with, plays the clip.
+    static func inline(_ text: String, clip: Clip? = nil) -> String {
+        let html = escape(text)
             .replacing(#/\*\*(.+?)\*\*/#) { "<b>\($0.1)</b>" }
             .replacing(#/`([^`]+)`/#) { "<code>\($0.1)</code>" }
-            .replacing(#/\[?\b(\d\d):(\d\d):(\d\d)\b\]?/#) { timeLink("\($0.1):\($0.2):\($0.3)") }
+        let time = #/\[?\b(\d\d):(\d\d):(\d\d)\b\]?/#
+        guard let clip, let own = html.prefixMatch(of: time) else {
+            return html.replacing(time) { timeLink("\($0.1):\($0.2):\($0.3)") }
+        }
+        return timeLink("\(own.1):\(own.2):\(own.3)", clip: clip)
+            + html[own.range.upperBound...].replacing(time) { timeLink("\($0.1):\($0.2):\($0.3)") }
     }
 
-    static func timeLink(_ time: String) -> String {
+    static func timeLink(_ time: String, clip: Clip? = nil) -> String {
         let parts = time.split(separator: ":").compactMap { Int($0) }
         let seconds = parts[0] * 3600 + parts[1] * 60 + parts[2]
-        return "<a class=\"t\" href=\"#t-\(time.replacing(":", with: "-"))\" data-t=\"\(seconds)\">\(time)</a>"
+        func tenths(_ value: Double) -> String {
+            value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
+        }
+        let plays = clip.map { " data-t=\"\(tenths($0.start))\"" + ($0.end.map { " data-end=\"\(tenths($0))\"" } ?? "") }
+        return "<a class=\"t\(clip == nil ? "" : " clip")\" href=\"#t-\(time.replacing(":", with: "-"))\""
+            + "\(plays ?? " data-t=\"\(seconds)\"")>\(time)</a>"
     }
 
     static func escape(_ text: String) -> String {
@@ -256,7 +278,7 @@ public struct MeetingPage {
     h2 { margin-top: 32px; border-bottom: 1px solid var(--line); padding-bottom: 4px; scroll-margin-top: 70px; }
     section { scroll-margin-top: 70px; }
     .line { margin: 0; padding: 4px 8px; border-radius: 6px; scroll-margin-top: 90px; }
-    .line:target, .line.now { background: var(--now); }
+    .line:target, .line.now, li.playing { background: var(--now); }
     \((0..<8).map { ".s\($0) b { color: var(--s\($0)); }" }.joined(separator: " "))
     li { margin: 4px 0; }
     code { font: 14px ui-monospace, Menlo, monospace; }
@@ -270,8 +292,6 @@ public struct MeetingPage {
     textarea { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; font-family: inherit;
       font-size: 15px; line-height: 1.4; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
     textarea.answer { margin-left: 40px; width: calc(100% - 40px); }
-    form label { display: block; margin-top: 16px; font-weight: 600; }
-    form label textarea { font-weight: normal; }
     button { font: inherit; padding: 6px 14px; color: var(--bg); background: var(--link); border: 0; border-radius: 6px; cursor: pointer; }
     @media (max-width: 800px) { body.with-screens main { margin-right: 0; } aside { position: static; width: auto; padding: 0 24px; } }
     """
@@ -295,15 +315,30 @@ public struct MeetingPage {
       if (audio) { audio.currentTime = Math.max(0, seconds - 1); if (play) audio.play(); }
       show(seconds);
     }
+    // A clip stops half a second after its quoted part; any other timestamp plays on.
+    let clip, stopAt = null;
+    function play(link) {
+      clip?.closest("li").classList.remove("playing");
+      clip = link.classList.contains("clip") ? link : undefined;
+      clip?.closest("li").classList.add("playing");
+      stopAt = clip?.dataset.end ? Number(clip.dataset.end) + 0.5 : null;
+      seek(Number(link.dataset.t), true);
+    }
     document.addEventListener("click", event => {
       const link = event.target.closest("a.t");
       if (!link) return;
       event.preventDefault();
       if (event.detail) link.blur();
       history.replaceState(null, "", link.getAttribute("href"));
-      seek(Number(link.dataset.t), true);
+      play(link);
     });
-    audio?.addEventListener("timeupdate", () => show(audio.currentTime));
+    audio?.addEventListener("timeupdate", () => {
+      show(audio.currentTime);
+      if (stopAt === null || audio.currentTime < stopAt) return;
+      // Further on, the user moved the player there.
+      if (audio.currentTime < stopAt + 2) audio.pause();
+      stopAt = null;
+    });
     const target = location.hash ? document.getElementById(location.hash.slice(1)) : null;
     if (target?.classList.contains("line")) seek(Number(target.querySelector("a.t").dataset.t), false);
     const answers = document.getElementById("answers");
@@ -325,10 +360,6 @@ public struct MeetingPage {
         for (const field of answers.querySelectorAll("textarea[data-q]")) {
           lines.push(field.dataset.q + ". " + (one(field.value) || "ei vastausta, jää auki"));
         }
-        const glossary = one(document.getElementById("glossary").value);
-        if (glossary) lines.push("Sanastoon: " + glossary);
-        const notes = one(document.getElementById("notes").value);
-        if (notes) lines.push("Muuta: " + notes);
         const prompt = document.getElementById("prompt");
         prompt.value = lines.join("\\n");
         prompt.rows = lines.length + 1;
@@ -376,7 +407,18 @@ public struct MeetingPage {
     document.addEventListener("focusout", () => keys?.classList.remove("typing", "away"));
     // Chrome's player keeps every key from the page while it has focus.
     for (const type of ["play", "pause", "seeked", "volumechange", "ratechange"]) audio?.addEventListener(type, () => audio.blur());
+    function toggle() { if (audio.paused) audio.play(); else audio.pause(); }
+    function nextClip() {
+      const clips = [...(questions[selected]?.querySelectorAll("a.clip") ?? [])];
+      if (clips.length) play(clips[(clips.indexOf(clip) + 1) % clips.length]);
+    }
     document.addEventListener("keydown", event => {
+      // Ctrl, since a plain key types into the answer: Firefox itself has only Ctrl+M and Ctrl+Tab.
+      if (audio && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (event.key === "p" || event.key === "n")) {
+        if (!event.repeat) { if (event.key === "p") toggle(); else nextClip(); }
+        event.preventDefault();
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
       const field = event.target.closest("input, textarea, select, [contenteditable]");
       if (field) {
@@ -404,7 +446,11 @@ public struct MeetingPage {
           break;
         case " ":
           if (!audio || event.target.closest("audio, video")) return;
-          if (!event.repeat) { if (audio.paused) audio.play(); else audio.pause(); }
+          if (!event.repeat) toggle();
+          break;
+        case "n":
+          if (!audio) return;
+          if (!event.repeat) nextClip();
           break;
         case "c":
           if (!answers) return;

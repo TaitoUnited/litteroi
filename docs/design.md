@@ -85,8 +85,8 @@
   they were. The user opens it in Firefox, since Preview plays neither the CAF tracks nor a jump to
   a time. The tool mixes the tracks into `palaveri.m4a` (AAC) and copies each screen video as H.264
   `screen-<n>-<second>.mp4`, since Firefox may not play the recorder's HEVC; no session opens the
-  audio, the tool does the copying. Each question has a field for its answer, with fields for
-  glossary terms and other notes, and a button copies the answers as a prompt for the skill,
+  audio, the tool does the copying. Each question has a field for its answer, with none for
+  glossary terms or other notes since the user asked them gone, and a button copies the answers as a prompt for the skill,
   numbered as the questions are. The page keeps them in Firefox's local storage meanwhile.
 - The page's keys are the pull request review page's where they fit, since answering five
   meetings' questions with the mouse was slow: `j` and `k` select the next and the previous
@@ -95,8 +95,17 @@
   take it out, and space, which plays and pauses the meeting. In an answer, `Enter` ends it and
   puts the cursor in the next question's field, as the review page's `x` moves on, and
   `Shift+Enter` makes a new line; the user picked the cursor in the next field over only selecting
-  the next question, which would take one more `Enter` per answer. No other key acts inside a
-  field. The page opens with the cursor in the first unanswered question's field, as the user
+  the next question, which would take one more `Enter` per answer. `Ctrl+P` plays and pauses from
+  inside a field and `Ctrl+N` plays the question's next quoted line, `n` outside one, as the user
+  asked: Firefox's own keys use Control only for `Ctrl+M` and the tab keys, and in a field the two
+  replace macOS's cursor up and down a line, which the arrows still do. No other key acts inside a
+  field.
+- A quoted line under a question plays from its quoted part and stops half a second after it, which
+  the user picked over playing on. A line carries the time its utterance starts, and an utterance
+  ran for minutes, so the quoted words came long after a click. Whisper already timed each word, so
+  `transcript.json` keeps them per utterance, and the page matches each quoted part, in the
+  corrected transcript's words, to the stretch of Whisper's words most like it. `litteroi-cli
+  words` adds the times to an older transcript by transcribing it again, keeping its text. The page opens with the cursor in the first unanswered question's field, as the user
   asked, so the first answer needs no key; an address that names a transcript line opens on that
   line instead, with no field in focus.
 - `litteroi-cli export` copies a finished meeting, its minutes and corrected transcript in one

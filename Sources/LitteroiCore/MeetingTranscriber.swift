@@ -57,6 +57,18 @@ public struct MeetingTranscriber {
         return Transcript(utterances: SpeakerLabels.merged((mine + theirs).sorted { $0.start < $1.start }))
     }
 
+    /// The word times of a transcript made before they were kept: transcribes the recording again
+    /// and gives each utterance of `transcript` its words, leaving its text and times as they are,
+    /// since the corrected transcript and the questions quote them.
+    public func addingWords(
+        to transcript: Transcript,
+        mic: URL,
+        call: URL?,
+        progress: (String) -> Void = { _ in }
+    ) async throws -> Transcript {
+        transcript.addingWords(from: try await transcribe(mic: mic, call: call, progress: progress), own: SpeakerLabels.own)
+    }
+
     /// Downloads the model and tokenizer on the first run and loads them from disk after that.
     /// WhisperKit fetches the tokenizer again on every load when `tokenizer.json` is missing, and
     /// the file its fetch saved went missing between runs, so the tokenizer is fetched here.

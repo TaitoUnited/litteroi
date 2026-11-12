@@ -7,7 +7,7 @@ struct LitteroiCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "litteroi-cli",
         abstract: "Litteroi suomenkielisen palaverin äänitiedostoista.",
-        subcommands: [Transcribe.self, TranscribePending.self, Names.self, Status.self, Page.self, Export.self, PDF.self],
+        subcommands: [Transcribe.self, TranscribePending.self, Words.self, Names.self, Status.self, Page.self, Export.self, PDF.self],
         defaultSubcommand: Transcribe.self
     )
 }
@@ -105,6 +105,35 @@ private func transcribe(mic: URL, call: URL?, into folder: URL, title: String, m
     try transcript.write(to: folder, title: title)
     let seconds = Int(Date().timeIntervalSince(started))
     print("\(transcript.utterances.count) puheenvuoroa, \(seconds) s: \(folder.appending(path: "transcript.md").path)")
+}
+
+struct Words: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Lisää sanojen ajat palaverin transcript.json-tiedostoon, kun palaveri on litteroitu ennen kuin ne tallennettiin. Litteroi äänen uudelleen eikä muuta litteraatin tekstiä tai aikaleimoja. Sivun pätkät alkavat sen jälkeen lainatusta kohdasta."
+    )
+
+    @Argument(help: "Palaverikansio.")
+    var folder: String
+
+    @Option(help: "Kansio, johon mallit ladataan.")
+    var models: String?
+
+    mutating func run() async throws {
+        let meeting = MeetingFolder(url: URL(filePath: folder))
+        let transcript = try Transcript.read(meeting.transcriptJSON)
+        guard !transcript.utterances.contains(where: { $0.words != nil }) else {
+            print("Sanojen ajat ovat jo tiedostossa: \(meeting.transcriptJSON.path)")
+            return
+        }
+        let transcriber = models.map { MeetingTranscriber(modelsFolder: URL(filePath: $0)) } ?? MeetingTranscriber()
+        let call = FileManager.default.fileExists(atPath: meeting.call.path) ? meeting.call : nil
+        let timed = try await transcriber.addingWords(to: transcript, mic: meeting.mic, call: call) { step in
+            FileHandle.standardError.write(Data("\(step)...\n".utf8))
+        }
+        try timed.writeJSON(to: meeting.transcriptJSON)
+        let found = timed.utterances.filter { $0.words != nil }.count
+        print("Sanojen ajat \(found) puheenvuorolle \(timed.utterances.count):stä: \(meeting.transcriptJSON.path)")
+    }
 }
 
 struct Names: AsyncParsableCommand {

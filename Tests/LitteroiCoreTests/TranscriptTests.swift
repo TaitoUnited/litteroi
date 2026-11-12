@@ -60,8 +60,36 @@ import WhisperKit
     ]
     let segment = SpeakerSegment(speaker: .speakerId(1), startTime: 1, endTime: 1.4, frameRate: 100, speakerWords: words)
     #expect(SpeakerLabels.utterances(from: [segment], in: .fi) == [
-        Utterance(speaker: "Puhuja 2", start: 1, end: 1.4, text: "mut ei"),
+        Utterance(speaker: "Puhuja 2", start: 1, end: 1.4, text: "mut ei",
+                  words: [Word(start: 1, end: 1.2, text: "mut"), Word(start: 1.2, end: 1.4, text: "ei")]),
     ])
+}
+
+@Test func joinsTheWordsOfMergedPieces() {
+    let pieces = [
+        Utterance(speaker: "Puhuja 1", start: 0, end: 2, text: "Hei", words: [Word(start: 0, end: 1, text: "Hei")]),
+        Utterance(speaker: "Puhuja 1", start: 2, end: 4, text: "kaikki.", words: [Word(start: 2, end: 3, text: "kaikki.")]),
+    ]
+    #expect(SpeakerLabels.merged(pieces)[0].words == [Word(start: 0, end: 1, text: "Hei"), Word(start: 2, end: 3, text: "kaikki.")])
+}
+
+@Test func addsWordTimesToAnOlderTranscriptByTrack() {
+    let old = Transcript(utterances: [
+        Utterance(speaker: "Puhuja 1", start: 10, end: 60, text: "Mitäs? Jes."),
+        Utterance(speaker: "Minä", start: 20, end: 50, text: "Kerrotaan se."),
+        Utterance(speaker: "Puhuja 2", start: 61, end: 62, text: "Joo."),
+    ])
+    let timed = Transcript(utterances: [
+        Utterance(speaker: "Puhuja 1", start: 10, end: 60, text: "Mitäs? Jes.",
+                  words: [Word(start: 10, end: 11, text: "Mitäs?"), Word(start: 59, end: 60, text: "Jes.")]),
+        Utterance(speaker: "Akira", start: 20, end: 50, text: "Kerrotaan se.",
+                  words: [Word(start: 20, end: 21, text: "Kerrotaan"), Word(start: 49, end: 50, text: "se.")]),
+    ])
+    let added = old.addingWords(from: timed, own: ["Akira", "Minä"])
+    #expect(added.utterances.map(\.text) == old.utterances.map(\.text))
+    #expect(added.utterances[0].words?.map(\.text) == ["Mitäs?", "Jes."])
+    #expect(added.utterances[1].words?.map(\.text) == ["Kerrotaan", "se."])
+    #expect(added.utterances[2].words == nil)
 }
 
 @Test func formatsTimestampsAsHoursMinutesSeconds() {
