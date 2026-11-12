@@ -174,12 +174,10 @@ final class ScreenRecorder {
 /// H.265 at up to 2 frames a second and at most 1920 points wide, enough for slides and shared
 /// documents. ScreenCaptureKit sends a frame only when the screen changes.
 private final class DisplayRecorder: NSObject, SCStreamOutput {
-    private let url: URL
     private let stream: SCStream
-    private let writer: AVAssetWriter
-    private let input: AVAssetWriterInput
+    private let writer: ScreenWriter
     private let queue = DispatchQueue(label: "fi.taitounited.litteroi.screen", qos: .utility)
-    private var lastFrame: CMTime?
+    private let repeater: DispatchSourceTimer
     private var stopped = false
 
     init(display: SCDisplay, url: URL) throws {
@@ -190,50 +188,37 @@ private final class DisplayRecorder: NSObject, SCStreamOutput {
         configuration.minimumFrameInterval = CMTime(value: 1, timescale: 2)
         configuration.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
         configuration.showsCursor = true
-        self.url = url
         stream = SCStream(filter: SCContentFilter(display: display, excludingWindows: []), configuration: configuration, delegate: nil)
-        writer = try AVAssetWriter(outputURL: url, fileType: .mov)
-        input = AVAssetWriterInput(mediaType: .video, outputSettings: [
-            AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: configuration.width,
-            AVVideoHeightKey: configuration.height,
-        ])
-        input.expectsMediaDataInRealTime = true
-        writer.add(input)
+        writer = try ScreenWriter(url: url, width: configuration.width, height: configuration.height)
+        repeater = DispatchSource.makeTimerSource(queue: queue)
         super.init()
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
+        repeater.schedule(deadline: .now() + 1, repeating: 1)
+        repeater.setEventHandler { [weak self] in
+            guard let self, !self.stopped else { return }
+            self.writer.repeatLast(at: CMClockGetTime(CMClockGetHostTimeClock()))
+        }
+        repeater.resume()
     }
 
     func start() async throws {
         try await stream.startCapture()
     }
 
-    /// The last frame lasts until the recording stops, however long the screen stayed still.
     func stop() async {
         try? await stream.stopCapture()
-        let lastFrame = queue.sync { () -> CMTime? in
+        queue.sync {
             stopped = true
-            return self.lastFrame
+            repeater.cancel()
         }
-        guard let lastFrame else {
-            writer.cancelWriting()
-            try? FileManager.default.removeItem(at: url)
-            return
-        }
-        input.markAsFinished()
-        writer.endSession(atSourceTime: CMTimeMaximum(lastFrame, CMClockGetTime(CMClockGetHostTimeClock())))
-        await writer.finishWriting()
+        await writer.finish(at: CMClockGetTime(CMClockGetHostTimeClock()))
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen, !stopped, sampleBuffer.isValid, Self.isFrame(sampleBuffer) else { return }
-        if lastFrame == nil {
-            guard writer.startWriting() else { return }
-            writer.startSession(atSourceTime: sampleBuffer.presentationTimeStamp)
-        }
-        if input.isReadyForMoreMediaData, input.append(sampleBuffer) {
-            lastFrame = sampleBuffer.presentationTimeStamp
-        }
+        guard type == .screen, !stopped, sampleBuffer.isValid, Self.isFrame(sampleBuffer),
+              let image = sampleBuffer.imageBuffer
+        else { return }
+        writer.append(image, at: sampleBuffer.presentationTimeStamp)
     }
 
     /// ScreenCaptureKit also sends buffers without an image while the screen stays still.

@@ -2,9 +2,10 @@ import AVFoundation
 
 /// Copies a meeting's recordings into files the browser plays on its page: both tracks mixed into
 /// one AAC file, and each screen video as H.264, since Firefox may not play the recorder's HEVC.
-/// A copy newer than its recordings is kept.
+/// A copy newer than its recordings is kept. A screen video that cannot be copied, as one a crash
+/// cut off before its first fragment, is passed to `unreadable` and gets no copy.
 public enum MeetingMedia {
-    public static func export(_ meeting: MeetingFolder) async throws {
+    public static func export(_ meeting: MeetingFolder, unreadable: (URL) -> Void = { _ in }) async throws {
         let tracks = [meeting.mic, meeting.call].filter { FileManager.default.fileExists(atPath: $0.path) }
         if !tracks.isEmpty, isStale(meeting.listening, from: tracks) {
             let composition = AVMutableComposition()
@@ -18,8 +19,13 @@ public enum MeetingMedia {
             try await export(composition, preset: AVAssetExportPresetAppleM4A, as: .m4a, to: meeting.listening)
         }
         for screen in meeting.screens where isStale(meeting.browserCopy(of: screen), from: [screen]) {
-            try await export(AVURLAsset(url: screen), preset: AVAssetExportPresetHighestQuality, as: .mp4,
-                             to: meeting.browserCopy(of: screen))
+            do {
+                try await export(AVURLAsset(url: screen), preset: AVAssetExportPresetHighestQuality, as: .mp4,
+                                 to: meeting.browserCopy(of: screen))
+            } catch {
+                try? FileManager.default.removeItem(at: meeting.browserCopy(of: screen))
+                unreadable(screen)
+            }
         }
     }
 

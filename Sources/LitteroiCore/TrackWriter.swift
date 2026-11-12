@@ -14,6 +14,9 @@ public final class TrackWriter: @unchecked Sendable {
 
     private var file: AVAudioFile?
     private var converter: AVAudioConverter?
+    /// The converter leaves frames it has no use for yet in the buffer it was handed and reads
+    /// them when it is called again, so it gets a copy that is kept until the next one is converted.
+    private var lastInput: AVAudioPCMBuffer?
     private let latestLevel = OSAllocatedUnfairLock<Float>(initialState: 0)
 
     public init(url: URL) throws {
@@ -40,7 +43,7 @@ public final class TrackWriter: @unchecked Sendable {
             converter = AVAudioConverter(from: buffer.format, to: Self.format)
             converter?.downmix = true
         }
-        guard let converter else { return }
+        guard let converter, let input = Self.copy(buffer) else { return }
 
         let ratio = Self.format.sampleRate / buffer.format.sampleRate
         let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 1
@@ -54,13 +57,25 @@ public final class TrackWriter: @unchecked Sendable {
             }
             supplied = true
             status.pointee = .haveData
-            return buffer
+            return input
         }
+        lastInput = input
         if let conversionError { throw conversionError }
 
         try file.write(from: output)
         let level = Self.level(of: output)
         latestLevel.withLock { $0 = level }
+    }
+
+    private static func copy(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength) else { return nil }
+        copy.frameLength = buffer.frameLength
+        let source = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: buffer.audioBufferList))
+        for (from, to) in zip(source, UnsafeMutableAudioBufferListPointer(copy.mutableAudioBufferList)) {
+            guard let fromData = from.mData, let toData = to.mData else { return nil }
+            memcpy(toData, fromData, Int(min(from.mDataByteSize, to.mDataByteSize)))
+        }
+        return copy
     }
 
     /// The format a Core Audio IO proc delivers a process tap in: the tap's channels and samples

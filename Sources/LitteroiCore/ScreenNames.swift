@@ -13,12 +13,20 @@ public enum ScreenNames {
         public var samples: Int
     }
 
-    /// One frame every `interval` seconds of each video.
-    public static func read(_ meeting: MeetingFolder, every interval: TimeInterval = 10) async throws -> [Seen] {
+    /// One frame every `interval` seconds of each video. A video that cannot be opened, as one a
+    /// crash cut off before its first fragment, is passed to `unreadable` and left out; nil when
+    /// none could be opened.
+    public static func read(_ meeting: MeetingFolder, every interval: TimeInterval = 10,
+                            unreadable: (URL) -> Void = { _ in }) async throws -> [Seen]? {
         var seen: [String: Seen] = [:]
+        var opened = false
         for screen in meeting.screens {
             let asset = AVURLAsset(url: screen)
-            let duration = try await asset.load(.duration).seconds
+            guard let duration = try? await asset.load(.duration).seconds else {
+                unreadable(screen)
+                continue
+            }
+            opened = true
             let generator = AVAssetImageGenerator(asset: asset)
             generator.requestedTimeToleranceBefore = CMTime(seconds: interval / 2, preferredTimescale: 600)
             generator.requestedTimeToleranceAfter = CMTime(seconds: interval / 2, preferredTimescale: 600)
@@ -36,7 +44,7 @@ public enum ScreenNames {
                 }
             }
         }
-        return kept(Array(seen.values), interval: interval)
+        return opened ? kept(Array(seen.values), interval: interval) : nil
     }
 
     /// Seen over two minutes or more and in at least a third of the frames read meanwhile, after a

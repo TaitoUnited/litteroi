@@ -149,13 +149,18 @@ struct Names: AsyncParsableCommand {
     }
 }
 
-/// A meeting recorded without its screens gets no names file.
+/// A meeting recorded without its screens gets no names file, and neither does one whose screen
+/// videos cannot be opened: an empty file would say that the screens showed no names.
 private func readScreenNames(_ meeting: MeetingFolder) async throws {
     guard !meeting.screens.isEmpty else { return }
     FileHandle.standardError.write(Data("Luetaan nimiä näytöiltä...\n".utf8))
-    let seen = try await ScreenNames.read(meeting)
+    guard let seen = try await ScreenNames.read(meeting, unreadable: { warnUnreadable($0, in: meeting) }) else { return }
     try ScreenNames.write(seen, to: meeting)
     print("\(seen.count) nimeä ruudulla: \(meeting.screenNames.path)")
+}
+
+private func warnUnreadable(_ screen: URL, in meeting: MeetingFolder) {
+    FileHandle.standardError.write(Data("Varoitus, \(meeting.title): näyttövideo \(screen.lastPathComponent) ei aukea, joten se jää pois.\n".utf8))
 }
 
 struct Status: ParsableCommand {
@@ -192,7 +197,7 @@ struct Page: AsyncParsableCommand {
 
     mutating func run() async throws {
         let meeting = MeetingFolder(url: URL(filePath: folder))
-        try await MeetingMedia.export(meeting)
+        try await MeetingMedia.export(meeting) { warnUnreadable($0, in: meeting) }
         try MeetingPage(meeting: meeting).html.write(to: meeting.page, atomically: true, encoding: .utf8)
         print(meeting.page.absoluteString)
     }

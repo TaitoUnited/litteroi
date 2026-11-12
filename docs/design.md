@@ -266,8 +266,14 @@
   when it finishes a meeting, as the user asked, so the next meetings start from them.
 - The tracks are 16 kHz mono 16-bit PCM in CAF, about 115 MB an hour each: the rate Whisper
   works at, and a container that stays readable after a crash, which m4a does not.
-- The screen videos are QuickTime files, finished when the recording stops; a crash leaves them
-  unreadable. Their size an hour is not measured yet.
+- The screen videos are QuickTime files written in 5 s fragments, with a still screen's frame
+  repeated every 2 s, so a crash or a kill costs their last seconds; before 12.11.2026 it left
+  the whole video unreadable. The tool warns about a video that does not open and carries on.
+  Their size an hour is not measured yet.
+- Each audio buffer is copied before it is converted to 16 kHz: the converter leaves frames it
+  has no use for yet in the buffer it was handed and reads them on its next call. Read straight
+  from the IO proc's memory, that crashed the app on 12.11.2026 when Core Audio restarted the
+  devices as a call ended and unmapped the buffer.
 - The watcher deletes `mic.caf`, `call.caf`, the screen videos and the page's copies of them 14
   days after `muistio.md` was written, checked hourly. By then the minutes have been read, and a
   `[?]` or an unnamed speaker checked against the audio; storage limitation (GDPR Art. 5(1)(e))

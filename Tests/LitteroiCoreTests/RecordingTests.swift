@@ -123,6 +123,29 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(abs(audio.count - 16_000) < 400)
 }
 
+@Test func readsAnIOCyclesMemoryOnlyUntilItsAppendReturns() throws {
+    let url = try temporaryFolder().appending(path: "call.caf")
+    let writer = try TrackWriter(url: url)
+    let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: 2, interleaved: true)!
+    let cycles = (0..<2).map { _ in
+        let cycle = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 512)!
+        cycle.frameLength = 512
+        return cycle
+    }
+    for index in 0..<100 {
+        let cycle = cycles[index % 2]
+        let memory = cycle.audioBufferList.pointee.mBuffers.mData!.assumingMemoryBound(to: Float.self)
+        let samples = UnsafeMutableBufferPointer(start: memory, count: 1024)
+        samples.update(repeating: 0)
+        try writer.append(cycle.audioBufferList, format: format)
+        samples.update(repeating: 1)
+    }
+    writer.close()
+    let audio = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
+    #expect(audio.count > 16_000)
+    #expect(audio.allSatisfy { abs($0) < 0.001 })
+}
+
 @Test func skipsABufferListLaidOutForAnotherFormat() throws {
     let writer = try TrackWriter(url: try temporaryFolder().appending(path: "call.caf"))
     let mono = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1)!
@@ -235,6 +258,84 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     let page = MeetingPage(title: meeting.title, transcript: "", screens: ["screen-1-0.mp4", "screen-1-130.mp4"]).html
     #expect(page.contains(##"data-start="130" src="screen-1-130.mp4""##))
     #expect(page.contains(##"data-start="0" src="screen-1-0.mp4""##))
+}
+
+private func grey(_ level: Int32) -> CVPixelBuffer {
+    var buffer: CVPixelBuffer?
+    CVPixelBufferCreate(nil, 640, 360, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+                        [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary, &buffer)
+    CVPixelBufferLockBaseAddress(buffer!, [])
+    for plane in 0..<2 {
+        let bytes = CVPixelBufferGetBytesPerRowOfPlane(buffer!, plane) * CVPixelBufferGetHeightOfPlane(buffer!, plane)
+        memset(CVPixelBufferGetBaseAddressOfPlane(buffer!, plane), plane == 0 ? level : 128, bytes)
+    }
+    CVPixelBufferUnlockBaseAddress(buffer!, [])
+    return buffer!
+}
+
+/// Three seconds of a changing screen, then a still one until `seconds`, with the clock ticking
+/// as the recorder's does.
+private func record(_ writer: ScreenWriter, seconds: Int) throws {
+    func time(_ seconds: Double) -> CMTime { CMTime(seconds: 1000 + seconds, preferredTimescale: 600) }
+    for index in 0..<7 {
+        writer.append(grey(Int32(40 + 20 * index)), at: time(Double(index) / 2))
+        usleep(20_000)
+    }
+    for second in 4...seconds {
+        writer.repeatLast(at: time(Double(second)))
+        usleep(20_000)
+    }
+}
+
+@Test func keepsAScreenVideoCutOffBeforeItIsFinished() async throws {
+    let folder = try temporaryFolder()
+    let url = folder.appending(path: "screen-1-0.mov")
+    let writer = try ScreenWriter(url: url, width: 640, height: 360)
+    try record(writer, seconds: 30)
+
+    // What a crash leaves is the file as it is on disk now.
+    let cut = folder.appending(path: "cut.mov")
+    var kept = 0.0
+    for _ in 0..<50 where kept < 15 {
+        try await Task.sleep(for: .milliseconds(100))
+        try? FileManager.default.removeItem(at: cut)
+        try FileManager.default.copyItem(at: url, to: cut)
+        kept = (try? await AVURLAsset(url: cut).load(.duration).seconds) ?? 0
+    }
+    #expect(kept >= 15)
+
+    await writer.finish(at: CMTime(seconds: 1040, preferredTimescale: 600))
+    let whole = try await AVURLAsset(url: url).load(.duration).seconds
+    #expect(abs(whole - 40) < 1)
+}
+
+@Test func carriesOnPastAScreenVideoThatDoesNotOpen() async throws {
+    let meeting = try MeetingFolder.create(in: try temporaryFolder())
+    let broken = meeting.screen(1, from: 0), whole = meeting.screen(1, from: 20)
+    try Data(repeating: 7, count: 4096).write(to: broken)
+
+    var unreadable: [URL] = []
+    #expect(try await ScreenNames.read(meeting) { unreadable.append($0) } == nil)
+    #expect(unreadable == [broken])
+
+    let writer = try ScreenWriter(url: whole, width: 640, height: 360)
+    try record(writer, seconds: 12)
+    await writer.finish(at: CMTime(seconds: 1012, preferredTimescale: 600))
+    unreadable = []
+    #expect(try await ScreenNames.read(meeting) { unreadable.append($0) } == [])
+    #expect(unreadable == [broken])
+
+    unreadable = []
+    try await MeetingMedia.export(meeting) { unreadable.append($0) }
+    #expect(unreadable == [broken])
+    #expect(!FileManager.default.fileExists(atPath: meeting.browserCopy(of: broken).path))
+    #expect(FileManager.default.fileExists(atPath: meeting.browserCopy(of: whole).path))
+    #expect(try MeetingPage(meeting: meetingWithTranscript(meeting)).screens == ["screen-1-20.mp4"])
+}
+
+private func meetingWithTranscript(_ meeting: MeetingFolder) throws -> MeetingFolder {
+    try "".write(to: meeting.transcript, atomically: true, encoding: .utf8)
+    return meeting
 }
 
 @Test func keepsOnlyNamesLongOnTheScreen() {
