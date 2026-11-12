@@ -18,6 +18,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var recordingError: String?
     @Published private(set) var callError: String?
     @Published private(set) var screenError: String?
+    /// The menu bar's Mic Mode for Litteroi is not Standard, so macOS filters the microphone
+    /// before the app gets it. The mode is the user's pick per app, and no app can set its own.
+    @Published private(set) var micIsFiltered = false
 
     /// A recording starts without a window, which opens when something went wrong.
     var needsAttention: Bool {
@@ -32,6 +35,7 @@ final class AppModel: ObservableObject {
     private var startedAt = Date()
     private var ticker: Timer?
     private var wantsRecording = false
+    private var micModes: [AVCaptureDevice.MicrophoneMode] = []
 
     func startRecording(screens recordScreens: Bool) async {
         guard !isRecording else { return }
@@ -144,5 +148,17 @@ final class AppModel: ObservableObject {
         elapsed = Date().timeIntervalSince(startedAt)
         micLevel = mic?.writer.level ?? 0
         callLevel = call?.writer.level ?? 0
+        readMicMode()
+    }
+
+    /// Apple does not say which of the two properties follows the menu for an app without voice
+    /// processing, so either one counts, and the log keeps both for the next look.
+    private func readMicMode() {
+        let active = AVCaptureDevice.activeMicrophoneMode
+        let picked = AVCaptureDevice.preferredMicrophoneMode
+        guard [active, picked] != micModes else { return }
+        micModes = [active, picked]
+        micIsFiltered = active != .standard || picked != .standard
+        NSLog("Litteroi: mic mode active \(active.rawValue), picked \(picked.rawValue)")
     }
 }

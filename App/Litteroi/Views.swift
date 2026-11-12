@@ -26,6 +26,10 @@ struct RecordingView: View {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
                 }
             }
+            if model.micIsFiltered {
+                Text("Mikrofonitila ei ole Normaali, joten macOS muokkaa mikrofonin ääntä ennen tallennusta. Valitse valikkorivin Mikrofonitila-kohdasta Normaali.")
+                    .font(.footnote).foregroundStyle(.orange)
+            }
             if let error = model.callError {
                 Text(error).font(.footnote).foregroundStyle(.orange)
             }

@@ -7,8 +7,9 @@
   mic and call levels, Lopeta ja tallenna) and a Dock icon. Started by the watcher, from
   Control-Option-T, V or A or the prompt, it shows neither, so the meeting stays in front, as the
   user asked: the app is an `LSUIElement` that takes the regular activation policy only while its
-  window is open. The window opens anyway when a recorder fails, when the watcher is not running,
-  and when Litteroi is opened again from Spotlight or the watcher's Näytä nauhoitus.
+  window is open. The window opens anyway when a recorder fails, when the Mic Mode is not
+  Standard, when the watcher is not running, and when Litteroi is opened again from Spotlight or
+  the watcher's Näytä nauhoitus.
 - Control-Option-T, Cmd+Q or the button saves the tracks and quits; closing the window leaves the
   recording going. A recording under 2 s is deleted. The app only records: Whisper runs when the
   user types litteroi in Claude Code, so the machine is busy only when they choose.
@@ -50,6 +51,13 @@
 - Apple's voice processing on the mic would cancel echo while recording, but it is not known to
   cancel what other apps play, may turn their sound down during the call, and would change the
   recording for good.
+- macOS filters the mic of any app, one with no voice processing too, whose Mic Mode in the menu
+  bar is Voice Isolation, which Apple describes as isolating the voice and attenuating other
+  signals. That changes `mic.caf` for good, may turn down the people further from the Mac in a
+  room and hands the echo canceller a filtered track. The mode is the user's pick per app and no
+  app can set its own, so while Litteroi's is not Standard the window opens and says so. Apple
+  does not say whether `activeMicrophoneMode` or `preferredMicrophoneMode` follows the menu for
+  such an app, so the app reads both and logs them.
 - In-person meetings use the mic track alone, split by speaker.
 
 ## Finishing with Claude

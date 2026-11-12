@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import LitteroiCore
 import ServiceManagement
 import SwiftUI
@@ -25,12 +26,14 @@ struct LitteroiApp: App {
 /// Starts recording at launch. Started by the call watcher, it has no window and no Dock icon, so
 /// the meeting stays in front, and the watcher in the menu bar shows the recording and stops it.
 /// The window and the Dock icon show when the user opens Litteroi, such as from Spotlight, when
-/// something went wrong and when the watcher is not running. Quitting saves the recording.
+/// something went wrong, when macOS filters the microphone and when the watcher is not running.
+/// Quitting saves the recording.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private static let watcherID = "fi.taitounited.litteroi.watcher"
     private var window: NSWindow?
     private let fromWatcher = CommandLine.arguments.contains("--from-watcher")
+    private var micModeWatch: AnyCancellable?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(fromWatcher ? .accessory : .regular)
@@ -45,6 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DistributedNotificationCenter.default().addObserver(forName: mode.notification, object: nil, queue: .main) { _ in
                 MainActor.assumeIsolated { AppModel.shared.setScreens(mode == .audioAndVideo) }
             }
+        }
+        micModeWatch = AppModel.shared.$micIsFiltered.filter { $0 }.sink { [weak self] _ in
+            MainActor.assumeIsolated { self?.openRecordingWindow() }
         }
         Task {
             let screens = fromWatcher ? CommandLine.arguments.contains("--video")

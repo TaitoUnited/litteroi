@@ -71,6 +71,16 @@
         }
       }
     },
+    "Mikrofonitila ei ole Normaali, joten macOS muokkaa mikrofonin ääntä ennen tallennusta. Valitse valikkorivin Mikrofonitila-kohdasta Normaali.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mic Mode is not Standard, so macOS alters the microphone's sound before it is saved. Pick Standard under Mic Mode in the menu bar."
+          }
+        }
+      }
+    },
     "Nauhoitetaan": {
       "localizations": {
         "en": {

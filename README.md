@@ -14,7 +14,8 @@ Litteroi turns Finnish and English meetings into text on your own Mac. Nothing i
   recording from any app, with no window or Dock icon, Control-Option-V records every screen too and
   Control-Option-A only the audio, from the start or midway, and when a call ends, a recording
   started for it is offered to stop. When the screens were recorded, the names on the call's tiles
-  are read from them on the Mac to help tell who spoke.
+  are read from them on the Mac to help tell who spoke. Keep the menu bar's Mic Mode for Litteroi
+  on Standard: Voice Isolation filters the recording, and the window opens to say so.
 - `LitteroiCore`: Whisper large-v3 in Finnish or English (WhisperKit) and speaker labels
   (SpeakerKit, pyannote community-1).
 - `litteroi-cli`, inside the app: transcribes a mic recording, optionally with a separate call
