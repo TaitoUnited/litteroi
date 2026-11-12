@@ -116,7 +116,7 @@ public struct MeetingPage {
 
     /// The questions, each numbered one with a field for its answer, and a button that copies the
     /// answers as a prompt for the litteroi skill. A question left blank stays open in the prompt.
-    /// The keys are the pull request review page's where they fit: the selected question lists them.
+    /// The cursor stays in an answer, so the selected question lists only the keys of its field.
     /// A sub-item that quotes a transcript line is a clip, played from where its quoted part starts.
     /// It is an asked one when the question's own line names its speaker in bold.
     static func form(_ markdown: String, folder: String, name: String?, audio: Bool = false,
@@ -159,16 +159,11 @@ public struct MeetingPage {
 
     static let answerHint = "Enter tyhjään kenttään on kyllä. Muuten nimi, sama kuin toinen puhuja, kahden sekoitus, epäselvä, en tiedä tai muu vastaus"
 
-    /// The keys outside a field, then those inside an answer; the page shows one set or the other.
+    /// The keys inside an answer, shown while one has the cursor.
     static func keys(audio: Bool) -> String {
-        let browsing = [("j", "seuraava"), ("k", "edellinen"), ("Enter", "vastaa")]
-            + (audio ? [("välilyönti", "toista tai pysäytä"), ("l", "kysytty kohta"), ("n", "seuraava pätkä")] : [])
-            + [("c", "kopioi vastaukset")]
-        let typing = [("Enter", "seuraava kysymys, tyhjä kenttä on kyllä"), ("Shift+Enter", "uusi rivi")]
+        let typing = [("Enter", "seuraava kysymys, tyhjä kenttä on kyllä, viimeisestä kopioi vastaukset")]
             + (audio ? [("Ctrl+P", "toista tai pysäytä"), ("Ctrl+L", "kysytty kohta"), ("Ctrl+N", "seuraava pätkä")] : [])
-            + [("Esc", "pois kentästä")]
-        return (browsing.map { "<span class=\"browse\"><kbd>\($0.0)</kbd> \($0.1)</span>" }
-            + typing.map { "<span class=\"type\"><kbd>\($0.0)</kbd> \($0.1)</span>" }).joined()
+        return typing.map { "<span class=\"type\"><kbd>\($0.0)</kbd> \($0.1)</span>" }.joined()
     }
 
     /// The Markdown the skill writes: headings, paragraphs and lists nested one level. The
@@ -291,7 +286,7 @@ public struct MeetingPage {
     .question.selected { box-shadow: 0 0 0 2px var(--link); }
     .question ol { margin-bottom: 4px; }
     .keys { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 0 40px; font-size: 13px; color: var(--muted); }
-    .keys:not(.typing) .type, .keys.typing .browse { display: none; }
+    .keys:not(.typing) .type { display: none; }
     .keys.away { visibility: hidden; }
     kbd { font: 12px ui-monospace, Menlo, monospace; padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; }
     textarea { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; font-family: inherit;
@@ -400,7 +395,10 @@ public struct MeetingPage {
     }
     document.addEventListener("click", event => {
       const question = event.target.closest(".question");
-      if (question) select(questions.indexOf(question), false);
+      if (!question) return;
+      select(questions.indexOf(question), false);
+      // A played timestamp hands the cursor back to the answer.
+      if (event.target.closest("a.t")) answer(true);
     });
     document.addEventListener("focusin", event => {
       const field = event.target.closest("input, textarea, select, [contenteditable]");
@@ -433,46 +431,20 @@ public struct MeetingPage {
         if (event.key === "Escape") {
           field.blur();
           event.preventDefault();
-        } else if (event.key === "Enter" && !event.shiftKey && field.matches("textarea.answer")) {
+        } else if (event.key === "Enter" && field.matches("textarea.answer")) {
           event.preventDefault();
+          audio?.pause();
+          stopAt = null;
           if (!field.value.trim()) {
             field.value = "kyllä";
             field.dispatchEvent(new Event("input", { bubbles: true }));
           }
           const index = questions.indexOf(field.closest(".question"));
-          if (index === questions.length - 1) { field.blur(); return; }
+          if (index === questions.length - 1) { document.getElementById("make-prompt").click(); return; }
           select(index + 1, true);
           answer(true);
         }
-        return;
       }
-      switch (event.key) {
-        case "j":
-        case "k":
-          if (document.activeElement !== document.body) document.activeElement.blur();
-          select(event.key === "j" ? selected + 1 : Math.max(0, selected - 1), true);
-          break;
-        case "Enter":
-          if (event.target.closest("a, button, audio, video") || selected < 0) return;
-          answer();
-          break;
-        case " ":
-          if (!audio || event.target.closest("audio, video")) return;
-          if (!event.repeat) toggle();
-          break;
-        case "l":
-        case "n":
-          if (!audio) return;
-          if (!event.repeat) { if (event.key === "l") askedClip(); else nextClip(); }
-          break;
-        case "c":
-          if (!answers) return;
-          document.getElementById("make-prompt").click();
-          break;
-        default:
-          return;
-      }
-      event.preventDefault();
     });
     const unanswered = questions.findIndex(question => !question.querySelector("textarea.answer").value.trim());
     select(unanswered < 0 ? 0 : unanswered, unanswered > 0 && !location.hash);

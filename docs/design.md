@@ -96,22 +96,20 @@
   audio, the tool does the copying. Each question has a field for its answer, with none for
   glossary terms or other notes since the user asked them gone, and a button copies the answers as a prompt for the skill,
   numbered as the questions are. The page keeps them in Firefox's local storage meanwhile.
-- The page's keys are the pull request review page's where they fit, since answering five
-  meetings' questions with the mouse was slow: `j` and `k` select the next and the previous
-  question and scroll it to the top, the selected question lists the keys, and `c` copies, here
-  the answers. Its own keys are `Enter` and `Esc`, which put the cursor in the selected answer and
-  take it out, and space, which plays and pauses the meeting. In an answer, `Enter` ends it and
-  puts the cursor in the next question's field, as the review page's `x` moves on, and
-  `Shift+Enter` makes a new line; the user picked the cursor in the next field over only selecting
-  the next question, which would take one more `Enter` per answer. `Ctrl+P` plays and pauses from
-  inside a field and `Ctrl+N` plays the question's next quoted line, `n` outside one, as the user
-  asked: Firefox's own keys use Control only for `Ctrl+M` and the tab keys, and in a field the two
-  replace macOS's cursor up and down a line, which the arrows still do. `Ctrl+L`, `l` outside a
-  field, plays the line the question asks about, the quoted line whose speaker the question's own
-  line names in bold, since `Ctrl+N` starts from the context line before it and the user had to
-  click the asked one. `Enter` in an empty answer writes `kyllä`, which takes the question's guess:
-  the user had left such answers blank, and the prompt called them open. No other key acts inside
-  a field.
+- The page keeps the cursor in an answer from the first question to the last, since answering five
+  meetings' questions with the mouse was slow and the user said on 12.11.2026 that they are always
+  in the field. `Enter` ends an answer, pauses the meeting and puts the cursor in the next
+  question's field; in an empty answer it first writes `kyllä`, which takes the question's guess,
+  since the user had left such answers blank and the prompt called them open; from the last answer
+  it copies the answers as the button does. A click on a timestamp inside a question plays it and
+  hands the cursor back to that question's answer. `Ctrl+P` plays and pauses from inside a field,
+  `Ctrl+N` plays the question's next quoted line and `Ctrl+L` the line the question asks about, the
+  quoted line whose speaker the question's own line names in bold, since `Ctrl+N` starts from the
+  context line before it. Firefox's own keys use Control only for `Ctrl+M` and the tab keys, and in
+  a field the two replace macOS's cursor up and down a line, which the arrows still do. The
+  selected question lists these keys and no others: the keys for outside a field, `j`, `k`, space,
+  `l`, `n` and `c`, are gone with their hints, `Shift+Enter` no longer makes a new line, and `Esc`
+  still takes the cursor out but is not listed, all as the user asked on 12.11.2026.
 - A quoted line under a question plays from its quoted part and stops half a second after it, which
   the user picked over playing on. A line carries the time its utterance starts, and an utterance
   ran for minutes, so the quoted words came long after a click. Whisper already timed each word, so

@@ -182,12 +182,14 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(page.contains(##"<textarea class="answer" data-q="16""##))
     #expect(page.contains(##"<ol start="16"><li>"##))
     #expect(page.contains(##"id="make-prompt""##))
-    #expect(page.contains(##"<div class="keys" id="keys" hidden><span class="browse"><kbd>j</kbd> seuraava</span><span class="browse"><kbd>k</kbd> edellinen</span>"##))
-    #expect(page.contains(##"<kbd>välilyönti</kbd> toista tai pysäytä</span><span class="browse"><kbd>l</kbd> kysytty kohta</span><span class="browse"><kbd>n</kbd> seuraava pätkä"##))
+    #expect(page.contains(##"<div class="keys" id="keys" hidden><span class="type"><kbd>Enter</kbd> seuraava kysymys, tyhjä kenttä on kyllä, viimeisestä kopioi vastaukset</span><span class="type"><kbd>Ctrl+P</kbd> toista tai pysäytä</span><span class="type"><kbd>Ctrl+L</kbd> kysytty kohta</span><span class="type"><kbd>Ctrl+N</kbd> seuraava pätkä</span></div>"##))
+    #expect(!page.contains("Shift+Enter") && !page.contains("<kbd>Esc</kbd>") && !page.contains("browse"))
+    #expect(!page.contains(##"case "j":"##) && page.contains(##"event.key === "Enter" && field.matches("textarea.answer")"##))
     #expect(page.contains("function nextClip()") && page.contains("function askedClip()"))
-    #expect(page.contains(##"<span class="type"><kbd>Enter</kbd> seuraava kysymys, tyhjä kenttä on kyllä</span><span class="type"><kbd>Shift+Enter</kbd> uusi rivi</span>"##))
     #expect(page.contains(##"field.value = "kyllä";"##))
-    #expect(page.contains(##"<span class="type"><kbd>Ctrl+P</kbd> toista tai pysäytä</span><span class="type"><kbd>Ctrl+L</kbd> kysytty kohta</span><span class="type"><kbd>Ctrl+N</kbd> seuraava pätkä</span><span class="type"><kbd>Esc</kbd> pois kentästä</span></div>"##))
+    #expect(page.contains("audio?.pause();"))
+    #expect(page.contains(##"if (index === questions.length - 1) { document.getElementById("make-prompt").click(); return; }"##))
+    #expect(page.contains(##"if (event.target.closest("a.t")) answer(true);"##))
     #expect(!page.contains("glossary") && !page.contains("Sanastoon") && !page.contains("Muuta"))
     #expect(page.contains("if (!location.hash) answer(true);"))
     #expect(page.contains(##"<audio id="audio" controls preload="metadata" src="palaveri.m4a">"##))
@@ -195,8 +197,8 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(!page.contains("<video"))
 
     let silent = MeetingPage(title: "2026-11-04-0845", questions: "1. Kuka?\n", transcript: "").html
-    #expect(silent.contains(##"<kbd>c</kbd> kopioi vastaukset"##))
-    #expect(!silent.contains("välilyönti") && !silent.contains("Ctrl+P"))
+    #expect(silent.contains("viimeisestä kopioi vastaukset"))
+    #expect(!silent.contains("Ctrl+P"))
 }
 
 @Test func startsAQuotedLineWhereItsQuotedPartIsSaid() {
