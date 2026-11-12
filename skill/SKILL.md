@@ -62,9 +62,9 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
 
 5. Once the user has answered, by the page's prompt or in the chat, put the names into
    `korjattu.md`, write `muistio.md`, add to the glossary as below, delete `kysymykset.md` once
-   nothing in it is open, write the page again and copy the meeting to its project. A question
-   the prompt leaves open, `ei vastausta, jää auki`, stays in `kysymykset.md` and is asked again
-   with its context.
+   nothing in it is open, write the page again and copy the meeting to its project. The answer
+   `kyllä` takes the question's guess or its recommended answer. A question the prompt leaves
+   open, `ei vastausta, jää auki`, stays in `kysymykset.md` and is asked again with its context.
 
 6. Make each meeting finished in step 5 ready to share in Slack, as below.
 
@@ -88,10 +88,12 @@ button copies the answers as a prompt that starts `litteroi, vastaukset palaveri
 gives each answer by its question number, and the page keeps what the user typed until then.
 The page opens with the cursor in the first unanswered question's field.
 On the page, `j` and `k` select the next and the previous question, `Enter` puts the cursor in its
-field and `Esc` takes it out, space plays and pauses the meeting, `n` plays the selected question's
-next quoted line and `c` copies the answers; the selected question lists these keys. `Enter` in an
-answer moves the cursor on to the next question's field, `Shift+Enter` makes a new line, and
-`Ctrl+P` and `Ctrl+N` play and pause and play the next quoted line from inside the field.
+field and `Esc` takes it out, space plays and pauses the meeting, `l` plays the line the selected
+question asks about, `n` plays its next quoted line and `c` copies the answers; the selected
+question lists these keys. `Enter` in an answer moves the cursor on to the next question's field,
+and in an empty one it first answers `kyllä`. `Shift+Enter` makes a new line, and `Ctrl+P`,
+`Ctrl+L` and `Ctrl+N` play and pause, play the asked line and play the next quoted line from
+inside the field.
 
 A quoted line under a question plays from where its quoted part is said to half a second after it
 ends, by the word times in `transcript.json`, so cut a long line to the part that matters and leave
@@ -155,6 +157,11 @@ the user can say whether they spoke.
 
 `kysymykset.md` holds the same questions as a numbered list in Markdown, each context line a
 sub-item in the transcript's own form, `[00:12:06] **Puhuja 2:** text`, so the page plays it.
+The label a question asks about stands in bold on the question's own line, as `**Puhuja 2**`:
+the quoted lines with that label are the ones `l` plays, and every quoted line when none has it.
+Put each question as its guess or its recommended answer, so that yes takes it, since `Enter` in
+an empty field answers `kyllä`: `Jätetäänkö X pois?` when leaving X out is recommended, never a
+question whose yes means the other choice.
 
 ## korjattu.md
 

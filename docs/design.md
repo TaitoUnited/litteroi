@@ -106,8 +106,12 @@
   the next question, which would take one more `Enter` per answer. `Ctrl+P` plays and pauses from
   inside a field and `Ctrl+N` plays the question's next quoted line, `n` outside one, as the user
   asked: Firefox's own keys use Control only for `Ctrl+M` and the tab keys, and in a field the two
-  replace macOS's cursor up and down a line, which the arrows still do. No other key acts inside a
-  field.
+  replace macOS's cursor up and down a line, which the arrows still do. `Ctrl+L`, `l` outside a
+  field, plays the line the question asks about, the quoted line whose speaker the question's own
+  line names in bold, since `Ctrl+N` starts from the context line before it and the user had to
+  click the asked one. `Enter` in an empty answer writes `kyllä`, which takes the question's guess:
+  the user had left such answers blank, and the prompt called them open. No other key acts inside
+  a field.
 - A quoted line under a question plays from its quoted part and stops half a second after it, which
   the user picked over playing on. A line carries the time its utterance starts, and an utterance
   ran for minutes, so the quoted words came long after a click. Whisper already timed each word, so

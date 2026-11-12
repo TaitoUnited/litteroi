@@ -118,13 +118,16 @@ public struct MeetingPage {
     /// answers as a prompt for the litteroi skill. A question left blank stays open in the prompt.
     /// The keys are the pull request review page's where they fit: the selected question lists them.
     /// A sub-item that quotes a transcript line is a clip, played from where its quoted part starts.
+    /// It is an asked one when the question's own line names its speaker in bold.
     static func form(_ markdown: String, folder: String, name: String?, audio: Bool = false,
                      lines: [TimedLine] = []) -> String {
-        let quoted = #/^\[(\d\d):(\d\d):(\d\d)\] \*\*.+?:\*\* ?(.*)$/#
-        func clip(_ item: String) -> Clip? {
+        let quoted = #/^\[(\d\d):(\d\d):(\d\d)\] \*\*(.+?):\*\* ?(.*)$/#
+        func clip(_ item: String, asking question: String) -> Clip? {
             guard let match = item.wholeMatch(of: quoted) else { return nil }
             let second = Int(match.1)! * 3600 + Int(match.2)! * 60 + Int(match.3)!
-            return TimedLine.clip(of: String(match.4), at: second, in: lines) ?? Clip(start: Double(second))
+            var clip = TimedLine.clip(of: String(match.5), at: second, in: lines) ?? Clip(start: Double(second))
+            clip.asked = question.contains("**\(match.4)**") || question.contains("**\(match.4):")
+            return clip
         }
         var preamble: [String] = []
         var questions: [(number: Substring, lines: [String])] = []
@@ -137,10 +140,10 @@ public struct MeetingPage {
                 questions[questions.count - 1].lines.append(line)
             }
         }
-        let fields = questions.map {
+        let fields = questions.map { question in
             """
-            <div class="question">\(blocks($0.lines.joined(separator: "\n"), clip: clip))
-            <textarea class="answer" data-q="\($0.number)" rows="2" placeholder="\(answerHint)"></textarea></div>
+            <div class="question">\(blocks(question.lines.joined(separator: "\n"), clip: { clip($0, asking: question.lines[0]) }))
+            <textarea class="answer" data-q="\(question.number)" rows="2" placeholder="\(answerHint)"></textarea></div>
             """
         }
         return """
@@ -154,14 +157,16 @@ public struct MeetingPage {
         """
     }
 
-    static let answerHint = "Nimi, sama kuin toinen puhuja, kahden sekoitus, epäselvä, en tiedä tai muu vastaus"
+    static let answerHint = "Enter tyhjään kenttään on kyllä. Muuten nimi, sama kuin toinen puhuja, kahden sekoitus, epäselvä, en tiedä tai muu vastaus"
 
     /// The keys outside a field, then those inside an answer; the page shows one set or the other.
     static func keys(audio: Bool) -> String {
         let browsing = [("j", "seuraava"), ("k", "edellinen"), ("Enter", "vastaa")]
-            + (audio ? [("välilyönti", "toista tai pysäytä"), ("n", "seuraava pätkä")] : []) + [("c", "kopioi vastaukset")]
-        let typing = [("Enter", "seuraava kysymys"), ("Shift+Enter", "uusi rivi")]
-            + (audio ? [("Ctrl+P", "toista tai pysäytä"), ("Ctrl+N", "seuraava pätkä")] : []) + [("Esc", "pois kentästä")]
+            + (audio ? [("välilyönti", "toista tai pysäytä"), ("l", "kysytty kohta"), ("n", "seuraava pätkä")] : [])
+            + [("c", "kopioi vastaukset")]
+        let typing = [("Enter", "seuraava kysymys, tyhjä kenttä on kyllä"), ("Shift+Enter", "uusi rivi")]
+            + (audio ? [("Ctrl+P", "toista tai pysäytä"), ("Ctrl+L", "kysytty kohta"), ("Ctrl+N", "seuraava pätkä")] : [])
+            + [("Esc", "pois kentästä")]
         return (browsing.map { "<span class=\"browse\"><kbd>\($0.0)</kbd> \($0.1)</span>" }
             + typing.map { "<span class=\"type\"><kbd>\($0.0)</kbd> \($0.1)</span>" }).joined()
     }
@@ -245,7 +250,7 @@ public struct MeetingPage {
             value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
         }
         let plays = clip.map { " data-t=\"\(tenths($0.start))\"" + ($0.end.map { " data-end=\"\(tenths($0))\"" } ?? "") }
-        return "<a class=\"t\(clip == nil ? "" : " clip")\" href=\"#t-\(time.replacing(":", with: "-"))\""
+        return "<a class=\"t\(clip.map { $0.asked ? " clip asked" : " clip" } ?? "")\" href=\"#t-\(time.replacing(":", with: "-"))\""
             + "\(plays ?? " data-t=\"\(seconds)\"")>\(time)</a>"
     }
 
@@ -408,14 +413,17 @@ public struct MeetingPage {
     // Chrome's player keeps every key from the page while it has focus.
     for (const type of ["play", "pause", "seeked", "volumechange", "ratechange"]) audio?.addEventListener(type, () => audio.blur());
     function toggle() { if (audio.paused) audio.play(); else audio.pause(); }
-    function nextClip() {
-      const clips = [...(questions[selected]?.querySelectorAll("a.clip") ?? [])];
-      if (clips.length) play(clips[(clips.indexOf(clip) + 1) % clips.length]);
+    function playNext(clips) { if (clips.length) play(clips[(clips.indexOf(clip) + 1) % clips.length]); }
+    function nextClip() { playNext([...(questions[selected]?.querySelectorAll("a.clip") ?? [])]); }
+    // A question that names no quoted line's speaker asks about every line it quotes.
+    function askedClip() {
+      const asked = [...(questions[selected]?.querySelectorAll("a.clip.asked") ?? [])];
+      if (asked.length) playNext(asked); else nextClip();
     }
     document.addEventListener("keydown", event => {
       // Ctrl, since a plain key types into the answer: Firefox itself has only Ctrl+M and Ctrl+Tab.
-      if (audio && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (event.key === "p" || event.key === "n")) {
-        if (!event.repeat) { if (event.key === "p") toggle(); else nextClip(); }
+      if (audio && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && ["p", "l", "n"].includes(event.key)) {
+        if (!event.repeat) ({ p: toggle, l: askedClip, n: nextClip })[event.key]();
         event.preventDefault();
         return;
       }
@@ -427,6 +435,10 @@ public struct MeetingPage {
           event.preventDefault();
         } else if (event.key === "Enter" && !event.shiftKey && field.matches("textarea.answer")) {
           event.preventDefault();
+          if (!field.value.trim()) {
+            field.value = "kyllä";
+            field.dispatchEvent(new Event("input", { bubbles: true }));
+          }
           const index = questions.indexOf(field.closest(".question"));
           if (index === questions.length - 1) { field.blur(); return; }
           select(index + 1, true);
@@ -448,9 +460,10 @@ public struct MeetingPage {
           if (!audio || event.target.closest("audio, video")) return;
           if (!event.repeat) toggle();
           break;
+        case "l":
         case "n":
           if (!audio) return;
-          if (!event.repeat) nextClip();
+          if (!event.repeat) { if (event.key === "l") askedClip(); else nextClip(); }
           break;
         case "c":
           if (!answers) return;

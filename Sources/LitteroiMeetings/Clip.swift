@@ -7,6 +7,8 @@ import Foundation
 struct Clip: Equatable {
     var start: Double
     var end: Double?
+    /// The line's speaker is the one its question asks about.
+    var asked = false
 }
 
 /// A transcript line's times and words as `transcript.json` holds them.
