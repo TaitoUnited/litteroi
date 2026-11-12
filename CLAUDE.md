@@ -46,7 +46,9 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   from `nimi.txt` when it has one, and `litteroi-cli transcribe-pending`
   transcribes the `litteroimatta` ones, skipping the newest while the app is recording it. Both
   transcribe commands also read the names on the screen videos into `nimet-ruudulla.txt`, and
-  `litteroi-cli names <meeting folder>` reads them again. `litteroi-cli words <meeting folder>`
+  `litteroi-cli names <meeting folder>` reads them again. A screen video that does not open, as
+  one a crash cut off in its first seconds, is left out with a warning, by `page` too.
+  `litteroi-cli words <meeting folder>`
   adds word times to a `transcript.json` from before they were kept, by transcribing the meeting
   again without changing its text. `litteroi-cli page <meeting folder>`
   writes the meeting's `palaveri.html`, whose timestamps play the meeting in Firefox and whose form

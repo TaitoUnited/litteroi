@@ -37,7 +37,9 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
 
 3. When any meeting is `litteroimatta`, transcribe them all, one after another. The app only
    records, so this is where Whisper runs, and where the names on the screen videos are read into
-   `nimet-ruudulla.txt`; a meeting the app is still recording is left alone.
+   `nimet-ruudulla.txt`; a meeting the app is still recording is left alone. A warning that a
+   screen video does not open, `näyttövideo ... ei aukea`, means a crash cut it off: its names
+   are not read and the page shows no video for it, which the reply says.
    Whisper takes about 20 minutes per hour of audio on this Mac, so run it with the Bash tool's
    `run_in_background`, tell the user it is running, and go on with the next steps for the
    `litteroitu` meetings meanwhile. When its notification arrives, list the meetings again and
