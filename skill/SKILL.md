@@ -144,11 +144,15 @@ with what it rests on, then the context of one or two of that speaker's lines, p
 is, such as a greeting by name or the speaker's own topic: the line before, the speaker's line and
 the line after, each with its timestamp and label, a long line cut to its part that matters with
 `...`. List the speaker's other short lines with their times; no time to listen from, since the
-page plays each quoted line from its quoted part. Number the speakers, one meeting after another under the meeting's folder name, so the
-user can answer each by its number. Ask too about a name the transcript spells two ways or that
-Whisper may have misheard. The user may confirm a guess, give a name, say two labels are one person,
-say a label mixes two people, call its lines unclear, which makes them `Epäselvä`, or say they do
-not know; a question the user cannot settle from the text is asked again with its context.
+page plays each quoted line from its quoted part. Number each meeting's questions from 1, in the
+order the meeting reached them: by the time of each question's earliest line, quoted or listed, so
+the page reads from the start of the meeting to its end. A question asked again is numbered anew
+with the rest. Each page copies its own prompt, which names its folder, and in the chat the
+questions stand under each meeting's folder name, so a number need not be unique across meetings.
+Ask too about a name the transcript spells two ways or that Whisper may have misheard. The user may
+confirm a guess, give a name, say two labels are one person, say a label mixes two people, call its
+lines unclear, which makes them `Epäselvä`, or say they do not know; a question the user cannot
+settle from the text is asked again with its context.
 
 `nimet-ruudulla.txt` lists the names the call app showed on the screen, one a line with when each
 was first and last on screen, and the calendar event lists who was invited. Both say who was in
