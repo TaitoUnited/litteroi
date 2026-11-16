@@ -99,16 +99,19 @@
 - The page keeps the cursor in an answer from the first question to the last, since answering five
   meetings' questions with the mouse was slow and the user said on 12.11.2026 that they are always
   in the field. `Enter` ends an answer, pauses the meeting and puts the cursor in the next
-  question's field; in an empty answer it first writes `kyllä`, which takes the question's guess,
-  since the user had left such answers blank and the prompt called them open; from the last answer
-  it copies the answers as the button does. A click on a timestamp inside a question plays it and
+  question's field; in an empty answer it takes the question's guess, since the user had left such
+  answers blank and the prompt called them open; from the last answer it copies the answers as the
+  button does. It wrote `kyllä` into the field until the user asked on 16.11.2026 that it put the
+  answer only into the prompt: the field stays empty and shows `kyllä` greyed out in place of its
+  hint, and local storage keeps that mark. `Shift+Enter` moves back to the previous question's
+  field, also asked on 16.11.2026. A click on a timestamp inside a question plays it and
   hands the cursor back to that question's answer. `Ctrl+P` plays and pauses from inside a field,
-  `Ctrl+N` plays the question's next quoted line and `Ctrl+L` the line the question asks about, the
-  quoted line whose speaker the question's own line names in bold, since `Ctrl+N` starts from the
-  context line before it. Firefox's own keys use Control only for `Ctrl+M` and the tab keys, and in
-  a field the two replace macOS's cursor up and down a line, which the arrows still do. The
+  and `Ctrl+L` plays the line the question asks about, the quoted line whose speaker the question's
+  own line names in bold. `Ctrl+N`, which played the question's next quoted line, went on
+  16.11.2026 as the user asked. Firefox's own keys use Control only for `Ctrl+M` and the tab keys,
+  and in a field the two replace macOS's cursor up and down a line, which the arrows still do. The
   selected question lists these keys and no others: the keys for outside a field, `j`, `k`, space,
-  `l`, `n` and `c`, are gone with their hints, `Shift+Enter` no longer makes a new line, and `Esc`
+  `l`, `n` and `c`, are gone with their hints, `Shift+Enter` makes no new line, and `Esc`
   still takes the cursor out but is not listed, all as the user asked on 12.11.2026.
 - A quoted line under a question plays from its quoted part and stops half a second after it, which
   the user picked over playing on. A line carries the time its utterance starts, and an utterance

@@ -92,10 +92,11 @@ button copies the answers as a prompt that starts `litteroi, vastaukset palaveri
 gives each answer by its question number, and the page keeps what the user typed until then.
 The page opens with the cursor in the first unanswered question's field.
 The cursor stays in an answer. `Enter` moves it on to the next question's field and pauses the
-meeting, in an empty answer it first answers `kyllä`, and from the last answer it copies the
-answers. `Ctrl+P`, `Ctrl+L` and `Ctrl+N` play and pause, play the asked line and play the next
-quoted line, and a click on a timestamp inside a question plays it and keeps the cursor in that
-question's answer. The selected question lists these keys.
+meeting, and from the last answer it copies the answers. In an empty answer `Enter` takes the
+guess without writing in the field, which then shows `kyllä` greyed out, and the prompt gives that
+answer as `kyllä`. `Shift+Enter` moves the cursor back to the previous question's field. `Ctrl+P`
+plays and pauses, `Ctrl+L` plays the asked line, and a click on a timestamp inside a question
+plays it and keeps the cursor in that question's answer. The selected question lists these keys.
 
 A quoted line under a question plays from where its quoted part is said to half a second after it
 ends, by the word times in `transcript.json`, so cut a long line to the part that matters and leave

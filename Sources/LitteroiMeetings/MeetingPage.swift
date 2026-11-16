@@ -161,8 +161,9 @@ public struct MeetingPage {
 
     /// The keys inside an answer, shown while one has the cursor.
     static func keys(audio: Bool) -> String {
-        let typing = [("Enter", "seuraava kysymys, tyhjä kenttä on kyllä, viimeisestä kopioi vastaukset")]
-            + (audio ? [("Ctrl+P", "toista tai pysäytä"), ("Ctrl+L", "kysytty kohta"), ("Ctrl+N", "seuraava pätkä")] : [])
+        let typing = [("Enter", "seuraava kysymys, tyhjä kenttä on kyllä, viimeisestä kopioi vastaukset"),
+                      ("Shift+Enter", "edellinen kysymys")]
+            + (audio ? [("Ctrl+P", "toista tai pysäytä"), ("Ctrl+L", "kysytty kohta")] : [])
         return typing.map { "<span class=\"type\"><kbd>\($0.0)</kbd> \($0.1)</span>" }.joined()
     }
 
@@ -341,24 +342,36 @@ public struct MeetingPage {
     });
     const target = location.hash ? document.getElementById(location.hash.slice(1)) : null;
     if (target?.classList.contains("line")) seek(Number(target.querySelector("a.t").dataset.t), false);
+    // Enter in an empty answer takes the guess: the field shows kyllä greyed out and stays empty.
+    function accept(field, yes) {
+      field.dataset.yes = yes ? "1" : "";
+      field.placeholder = yes ? "kyllä" : field.dataset.hint;
+    }
+    const accepted = field => field.dataset.yes === "1" && !field.value.trim();
     const answers = document.getElementById("answers");
     if (answers) {
       const fields = [...answers.querySelectorAll("textarea:not(#prompt)")];
       const id = field => field.dataset.q || field.id;
       const key = "litteroi " + answers.dataset.folder;
+      for (const field of fields) field.dataset.hint = field.placeholder;
       try {
         const saved = JSON.parse(localStorage.getItem(key) || "{}");
-        for (const field of fields) field.value = saved[id(field)] || "";
+        for (const field of fields) {
+          const value = saved[id(field)];
+          field.value = typeof value === "string" ? value : "";
+          if (value?.yes) accept(field, true);
+        }
       } catch {}
-      answers.addEventListener("input", () => {
-        try { localStorage.setItem(key, JSON.stringify(Object.fromEntries(fields.map(field => [id(field), field.value])))); } catch {}
+      answers.addEventListener("input", event => {
+        if (event.target.matches("textarea.answer") && event.target.value.trim()) accept(event.target, false);
+        try { localStorage.setItem(key, JSON.stringify(Object.fromEntries(fields.map(field => [id(field), accepted(field) ? { yes: true } : field.value])))); } catch {}
       });
       document.getElementById("make-prompt").addEventListener("click", async () => {
         const one = text => text.trim().replace(/\\s*\\n\\s*/g, "; ");
         const name = answers.dataset.name ? " (" + answers.dataset.name + ")" : "";
         const lines = ["litteroi, vastaukset palaveriin " + answers.dataset.folder + name + ":"];
         for (const field of answers.querySelectorAll("textarea[data-q]")) {
-          lines.push(field.dataset.q + ". " + (one(field.value) || "ei vastausta, jää auki"));
+          lines.push(field.dataset.q + ". " + (one(field.value) || (accepted(field) ? "kyllä" : "ei vastausta, jää auki")));
         }
         const prompt = document.getElementById("prompt");
         prompt.value = lines.join("\\n");
@@ -420,8 +433,8 @@ public struct MeetingPage {
     }
     document.addEventListener("keydown", event => {
       // Ctrl, since a plain key types into the answer: Firefox itself has only Ctrl+M and Ctrl+Tab.
-      if (audio && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && ["p", "l", "n"].includes(event.key)) {
-        if (!event.repeat) ({ p: toggle, l: askedClip, n: nextClip })[event.key]();
+      if (audio && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && ["p", "l"].includes(event.key)) {
+        if (!event.repeat) ({ p: toggle, l: askedClip })[event.key]();
         event.preventDefault();
         return;
       }
@@ -435,18 +448,25 @@ public struct MeetingPage {
           event.preventDefault();
           audio?.pause();
           stopAt = null;
+          const index = questions.indexOf(field.closest(".question"));
+          if (event.shiftKey) {
+            if (index > 0) { select(index - 1, true); answer(true); }
+            return;
+          }
           if (!field.value.trim()) {
-            field.value = "kyllä";
+            accept(field, true);
             field.dispatchEvent(new Event("input", { bubbles: true }));
           }
-          const index = questions.indexOf(field.closest(".question"));
           if (index === questions.length - 1) { document.getElementById("make-prompt").click(); return; }
           select(index + 1, true);
           answer(true);
         }
       }
     });
-    const unanswered = questions.findIndex(question => !question.querySelector("textarea.answer").value.trim());
+    const unanswered = questions.findIndex(question => {
+      const field = question.querySelector("textarea.answer");
+      return !field.value.trim() && !accepted(field);
+    });
     select(unanswered < 0 ? 0 : unanswered, unanswered > 0 && !location.hash);
     if (!location.hash) answer(true);
     """
