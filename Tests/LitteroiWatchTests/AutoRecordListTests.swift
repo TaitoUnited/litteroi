@@ -35,6 +35,19 @@ private func temporaryList() -> AutoRecordList {
     #expect(BrowserPage.site(of: URL(string: "file:///Users/akira/Litteroi/x/palaveri.html")!) == nil)
 }
 
+@Test func theFrontTabHoldsTheCallUnlessAnotherTabPlaysSound() {
+    let front = BrowserPage.Tab(front: true, playsSound: false)
+    let frontPlaying = BrowserPage.Tab(front: true, playsSound: true)
+    let quiet = BrowserPage.Tab(front: false, playsSound: false)
+    let playing = BrowserPage.Tab(front: false, playsSound: true)
+    #expect(BrowserPage.frontTabHoldsCall([front, quiet], playingSound: false))
+    #expect(BrowserPage.frontTabHoldsCall([], playingSound: false))
+    #expect(!BrowserPage.frontTabHoldsCall([front, playing], playingSound: false))
+    #expect(BrowserPage.frontTabHoldsCall([frontPlaying, playing], playingSound: false))
+    #expect(!BrowserPage.frontTabHoldsCall([front, quiet], playingSound: true))
+    #expect(BrowserPage.frontTabHoldsCall([frontPlaying], playingSound: true))
+}
+
 @Test func everyBrowserIsACallApp() {
     let names = Set(CallDetector.callApps.map(\.name))
     #expect(Set(BrowserPage.browsers.keys).isSubset(of: names))

@@ -79,6 +79,8 @@ final class CallWatcher: ObservableObject {
     private var autoStartingUntil = Date.distantPast
     private var stopsWithCall = false
     private var calls = 0
+    private var siteWait: SiteWait?
+    private var readingSite = false
     private let autoList = AutoRecordList(file: MeetingFolder.defaultRoot.appending(path: "automaattiset.txt"))
 
     func start() {
@@ -145,33 +147,90 @@ final class CallWatcher: ObservableObject {
         case nil:
             break
         }
+        waitForSite()
     }
 
-    /// The source is the call app, or for a browser the site in its front window, which the
-    /// meeting has just opened in. A browser whose site cannot be read gets the prompt without the
-    /// offer to add it.
+    /// The source is the call app, or for a browser the site of the call's tab. A browser whose site
+    /// cannot be read yet, such as while the call's tab is behind another, gets the prompt without
+    /// the offer to add it, and its site is read again once the front tab changes.
     private func recordOrOffer(_ app: String, call number: Int) {
         Task {
             let source = await Self.source(of: app)
             guard number == calls, call != nil, !Self.litteroiRunning else { return }
-            let mode = MeetingFolder.RecordingMode.forDisplays
+            if source == nil, BrowserPage.browsers[app] != nil, BrowserPage.permitted {
+                siteWait = SiteWait(call: number, browser: app, title: BrowserPage.frontTitle(inBrowser: app),
+                                    reads: SiteWait.reads)
+            }
             if let source, autoList.contains(source) {
-                startRecording(mode, stopsWithCall: true)
+                startRecording(.forDisplays, stopsWithCall: true)
+            } else {
+                offer(source)
+            }
+        }
+    }
+
+    private func offer(_ source: String?) {
+        let mode = MeetingFolder.RecordingMode.forDisplays
+        var actions: [CallPrompt.Action] = []
+        if let source {
+            actions.append(.init(title: "Aina", key: "L") { CallWatcher.shared.alwaysRecord(source) })
+        }
+        actions += [
+            .init(title: "Ääni", key: "A") { CallWatcher.shared.record(.audio) },
+            .init(title: "Kuva", key: "V") { CallWatcher.shared.record(.audioAndVideo) },
+        ]
+        let litteroidaanko = String(localized: "Litteroidaanko?")
+        CallPrompt.show(title: source == nil ? nil : litteroidaanko,
+                        message: source.map { String(localized: "Aina: litteroi jatkossa itsestään (\($0))") } ?? litteroidaanko,
+                        actions: actions, dismiss: "Ei",
+                        defaultKey: mode == .audioAndVideo ? "V" : "A")
+    }
+
+    /// A browser call whose site could not be read. A tab that comes to the front may be quiet for
+    /// a moment, so after each change of the front tab the site is read up to `reads` times,
+    /// `pollsBetweenReads` polls apart, and only from a front tab that plays sound.
+    private struct SiteWait {
+        static let reads = 6
+        static let pollsBetweenReads = 5
+        let call: Int
+        let browser: String
+        var title: String?
+        var reads = 0
+        var polls = 0
+    }
+
+    /// A site read late is recorded on its own when it is on the list, and otherwise added to the
+    /// prompt as Aina while the prompt still shows.
+    private func waitForSite() {
+        guard var wait = siteWait, !readingSite else { return }
+        guard wait.call == calls, call != nil, !recording, !Self.litteroiRunning else {
+            siteWait = nil
+            return
+        }
+        let title = BrowserPage.frontTitle(inBrowser: wait.browser)
+        if title != wait.title {
+            wait = SiteWait(call: wait.call, browser: wait.browser, title: title)
+        } else {
+            wait.polls += 1
+            guard wait.reads < SiteWait.reads, wait.polls >= SiteWait.pollsBetweenReads else {
+                siteWait = wait
                 return
             }
-            var actions: [CallPrompt.Action] = []
-            if let source {
-                actions.append(.init(title: "Aina", key: "L") { CallWatcher.shared.alwaysRecord(source) })
+        }
+        wait.reads += 1
+        wait.polls = 0
+        siteWait = wait
+        readingSite = true
+        Task {
+            let source = await BrowserPage.url(inBrowser: wait.browser, playingSound: true).flatMap(BrowserPage.site(of:))
+            readingSite = false
+            guard let source, siteWait?.call == calls, call != nil, !Self.litteroiRunning else { return }
+            siteWait = nil
+            if autoList.contains(source) {
+                startRecording(.forDisplays, stopsWithCall: true)
+            } else if CallPrompt.isShowing {
+                offer(source)
             }
-            actions += [
-                .init(title: "Ääni", key: "A") { CallWatcher.shared.record(.audio) },
-                .init(title: "Kuva", key: "V") { CallWatcher.shared.record(.audioAndVideo) },
-            ]
-            let litteroidaanko = String(localized: "Litteroidaanko?")
-            CallPrompt.show(title: source == nil ? nil : litteroidaanko,
-                            message: source.map { String(localized: "Aina: litteroi jatkossa itsestään (\($0))") } ?? litteroidaanko,
-                            actions: actions, dismiss: "Ei",
-                            defaultKey: mode == .audioAndVideo ? "V" : "A")
         }
     }
 

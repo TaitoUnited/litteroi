@@ -55,6 +55,8 @@ enum CallPrompt {
         actions.first { $0.key == key }?.run()
     }
 
+    static var isShowing: Bool { panel != nil }
+
     static func close() {
         panel?.close()
         panel = nil

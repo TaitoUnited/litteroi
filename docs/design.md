@@ -192,16 +192,25 @@
   ends, or Ei or Control-Option-N dismisses it. It was a notification at first, but the watcher's
   notifications were denied on the first Mac it ran on, so a Meet call showed nothing, and every Mac
   would need that permission; the window needs none.
-- A browser call's site is the host, without www., of the page in the browser's front window, which
-  the meeting has just opened in, read through the Accessibility API when the call starts. Chrome,
-  Edge, Brave, Arc and Safari give the URL as the window's document. Firefox builds its
-  accessibility tree only while a client has set `AXEnhancedUserInterface`, as VoiceOver does, so
-  when a read finds nothing the watcher sets it, reads again, which took about 0.5 s, and sets it
-  back, after which Firefox drops the tree again. No browser says which tab holds the mic, so a
-  call joined in a window left behind another is read from the wrong page. AppleScript would need
-  an Automation permission per browser and gives no URL in Firefox, the default browser on the first
-  Mac, and Firefox's session file under Application Support is closed to other apps. The watcher
-  asks for the Accessibility permission the first time a call starts in a browser, once.
+- A browser call's site is the host, without www., of the call's tab, read through the
+  Accessibility API when the call starts. Chrome, Edge, Brave, Arc and Safari give the URL of the
+  front window's tab as the window's document. Firefox builds its accessibility tree only while a
+  client has set `AXEnhancedUserInterface`, as VoiceOver does, so when a read finds nothing the
+  watcher sets it, reads again, which took about 0.5 s, and sets it back, after which Firefox drops
+  the tree again. No browser says which tab holds the mic, and Firefox gives the URL of the front
+  tab only, so on 16.11.2026 a Meet call whose prompt came while a GitHub tab was in front offered
+  Aina for github.com. Firefox does mark a tab that plays sound with a mute button before its
+  title, and a call plays the others' voices, so while a tab of any Firefox window plays sound, the
+  front tab is read only when it is one of them. Otherwise the prompt shows without Aina, and the
+  site is read again each time the front window's title changes, which costs no tree, then up to
+  five times more 10 s apart, since a call can be quiet for a moment, and only from a front tab
+  that plays sound. A site read that way records on its own when it is on the list, or adds Aina
+  to the prompt while it still shows. With no tab playing sound, as in Meet's waiting room, the
+  front tab is read as before. The rule follows Firefox's tab strip, so a browser whose tabs show
+  no such button keeps the front tab. AppleScript would need an Automation permission per browser and gives no URL
+  in Firefox, the default browser on the first Mac, and Firefox's profile folder, its session file
+  included, is closed to other apps. The watcher asks for the Accessibility permission the first
+  time a call starts in a browser, once.
 - Control-Option-T starts a recording from any app, or stops the one going on, since Litteroi saves
   when it quits. It is a Carbon hot key (`RegisterEventHotKey`), as are V, A and H, held by the
   watcher, which runs all the time and needs no accessibility permission for them.
