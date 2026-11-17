@@ -77,6 +77,8 @@ public struct MeetingFolder: Hashable, Sendable {
     /// The skill's questions about who spoke, until the minutes are written.
     public var questions: URL { url.appending(path: "kysymykset.md") }
     public var page: URL { url.appending(path: "palaveri.html") }
+    /// What `litteroi-cli live` heard while the meeting was being recorded, without speakers.
+    public var live: URL { url.appending(path: "live.md") }
     /// The names read from the screen videos, which the skill reads in place of the videos.
     public var screenNames: URL { url.appending(path: "nimet-ruudulla.txt") }
     /// Whose tile the call app outlined while each speaker label spoke, read from the screen videos.

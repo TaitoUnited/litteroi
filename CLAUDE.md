@@ -40,6 +40,10 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   `transcript.md` and `transcript.json`. Without `--call` the mic track is split by speaker; with it
   the mic track carries the user's first name, from macOS, and only the call track is split. Given a
   meeting folder under `~/Litteroi` instead, it transcribes that meeting's tracks into the folder.
+- Live: `litteroi-cli live [<meeting folder>]` transcribes the meeting being recorded, or the one
+  given, into its `live.md` while the mic track grows, about half a minute behind and without
+  speakers, prints each line too, and stops once the recording has. `--from <second>` picks up
+  midway and appends, and `--output <file>` writes elsewhere. The meeting stays `litteroimatta`.
 - Meetings: `litteroi-cli status` lists each meeting as `litteroimatta`, `litteroitu` or `valmis`,
   the one being recorded as `nauhoitetaan (ääni)` or `nauhoitetaan (ääni ja video)`, then its folder,
   the recording's length while its audio is kept, such as `9 s` or `40 min`, and the meeting's name

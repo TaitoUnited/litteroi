@@ -7,7 +7,7 @@ struct LitteroiCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "litteroi-cli",
         abstract: "Litteroi suomenkielisen palaverin äänitiedostoista.",
-        subcommands: [Transcribe.self, TranscribePending.self, Words.self, Names.self, Speakers.self, Status.self, Page.self, Export.self, PDF.self],
+        subcommands: [Transcribe.self, TranscribePending.self, Live.self, Words.self, Names.self, Speakers.self, Status.self, Page.self, Export.self, PDF.self],
         defaultSubcommand: Transcribe.self
     )
 }
@@ -91,6 +91,56 @@ struct TranscribePending: AsyncParsableCommand {
             }
         }
         if failed { throw ExitCode.failure }
+    }
+}
+
+struct Live: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Litteroi käynnissä olevaa nauhoitusta sitä mukaa kuin se etenee, noin puoli minuuttia perässä, ja kirjoittaa tekstin ilman puhujia tiedostoon live.md. Päättyy nauhoituksen kanssa. Koko litterointi puhujineen tehdään sen jälkeen kuten ennenkin."
+    )
+
+    @Argument(help: "Palaverikansio tai mikrofonin äänitiedosto. Ilman sitä palaveri, jota nauhoitetaan.")
+    var input: String?
+
+    @Option(help: "Palaverin sekunti, josta aloitetaan. Teksti lisätään silloin tiedoston loppuun.")
+    var from: Double = 0
+
+    @Option(help: "Tiedosto, johon teksti kirjoitetaan. Palaverikansiolle oletuksena sen live.md.")
+    var output: String?
+
+    @Option(help: "Kansio, johon mallit ladataan.")
+    var models: String?
+
+    mutating func run() async throws {
+        let meeting: MeetingFolder?
+        let track: URL
+        if let input {
+            var isFolder: ObjCBool = false
+            FileManager.default.fileExists(atPath: input, isDirectory: &isFolder)
+            meeting = isFolder.boolValue ? MeetingFolder(url: URL(filePath: input)) : nil
+            track = meeting?.mic ?? URL(filePath: input)
+        } else {
+            guard appRunning, let recorded = MeetingFolder.all().last, recorded.recordingMode != nil else {
+                throw ValidationError("Mitään ei nauhoiteta. Anna palaverikansio.")
+            }
+            meeting = recorded
+            track = recorded.mic
+        }
+        guard let target = output.map({ URL(filePath: $0) }) ?? meeting?.live else {
+            throw ValidationError("Anna --output, kun litteroit äänitiedoston.")
+        }
+        let transcriber = models.map { MeetingTranscriber(modelsFolder: URL(filePath: $0)) } ?? MeetingTranscriber()
+        FileHandle.standardError.write(Data("Teksti: \(target.path)\n".utf8))
+        try await LiveTranscriber(transcriber: transcriber).follow(
+            track,
+            from: from,
+            into: target,
+            title: meeting?.title ?? track.deletingPathExtension().lastPathComponent,
+            recording: { meeting?.recordingMode != nil && appRunning },
+            line: { print($0); fflush(stdout) },
+            progress: { FileHandle.standardError.write(Data("\($0)...\n".utf8)) }
+        )
+        FileHandle.standardError.write(Data("Nauhoitus päättyi: \(target.path)\n".utf8))
     }
 }
 

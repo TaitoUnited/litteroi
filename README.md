@@ -21,6 +21,9 @@ Litteroi turns Finnish and English meetings into text on your own Mac. Nothing i
 - `litteroi-cli`, inside the app: transcribes a mic recording, optionally with a separate call
   recording, into `transcript.md` and `transcript.json`. On speakers, it first removes the call's
   echo from the mic. The watcher deletes a meeting's audio 14 days after its minutes are written.
+  While a meeting is being recorded, `litteroi-cli live` writes what is said into the meeting's
+  `live.md`, about half a minute behind and without speakers, so you or Claude can follow it or
+  write minutes during it. The full transcription with speakers runs afterwards as before.
 - The `litteroi` skill for Claude Code: type litteroi in any session and Litteroi updates itself
   from this repository's releases, Whisper transcribes the new recordings, then Claude asks you who
   each speaker is, fixes the transcript and writes `muistio.md`. Each meeting gets a page,

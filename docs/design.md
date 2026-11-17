@@ -187,6 +187,38 @@
 - Claude cannot hear the audio, so it can point out that two speaker labels look like one person
   but cannot check it.
 
+## Live text
+
+- The user asked on 17.11.2026, while recording a meeting they took the minutes of, to read what
+  was said while it still ran, to fill in the minutes during it: "on the go while recording still
+  goes". `litteroi-cli live` writes the meeting's `live.md` while the app records,
+  from `mic.caf` as the app writes it, since a CAF stays readable while it grows.
+- It waits until 15 s of new audio is in, then ends a window in the middle of the quietest 0.4 s of
+  its last 15 s, at most 30 s from its start, so no word is cut in two, and transcribes each window
+  once. Whisper encodes 30 s on every pass however short the audio, so a text only seconds behind
+  would encode the same audio again every few seconds, and its last words would change as more
+  came in. A window costs one pass, as in the full transcription, and the text runs about half a
+  minute behind.
+- The lines carry their time and no speaker. SpeakerKit labels a speaker from the whole recording,
+  so labels taken from the first minutes would change as the meeting goes on, and the user said of
+  that meeting: "no need to take names this is a pöytäkirja". Each window takes the language
+  Whisper hears in it, and one under 5 s, or in neither Finnish nor English, the language most of
+  the meeting so far is in.
+- It ends once `.nauhoitus` is gone or the app has quit, or when the track has not grown for 60 s,
+  as after a crash, and transcribes the rest first. `live.md` is not `transcript.md`, so the meeting
+  stays `litteroimatta` and the full transcription, with speakers and the call's echo removed, runs
+  afterwards as before.
+- It reads the mic track alone, so in a call it has the user's side and what the mic picks up from
+  the speakers, not the call track.
+- The app shows no live text and starts no live run. Asked on 17.11.2026 where the text should
+  show once built into the app, in `live.md` or in an app window, the user answered "nowhere".
+  Claude's reading: the command stays for when the user asks for it, and the skill runs it and
+  reads `live.md`, as a session did that evening to fill in the minutes.
+- On that meeting it ran from 58:20 to the end at 1:05:37 while the installed
+  `litteroi-cli` transcribed the first 58 minutes at the same time. The two shared the Mac, and
+  the 7.3 minutes of audio took 12.8 minutes, model loading included. The installed tool took 24.3
+  minutes for its 59.5 minutes of audio, sharing the Mac with the live run for 13 of them.
+
 ## Meeting detection
 
 - `LitteroiWatcher.app` is a helper with no Dock icon, inside the app bundle under

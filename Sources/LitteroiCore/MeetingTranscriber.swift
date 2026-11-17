@@ -72,7 +72,7 @@ public struct MeetingTranscriber {
     /// Downloads the model and tokenizer on the first run and loads them from disk after that.
     /// WhisperKit fetches the tokenizer again on every load when `tokenizer.json` is missing, and
     /// the file its fetch saved went missing between runs, so the tokenizer is fetched here.
-    private func loadWhisper() async throws -> WhisperKit {
+    func loadWhisper() async throws -> WhisperKit {
         let hub = HubApiWrapper(downloadBase: modelsFolder)
         let tokenizerRepo = HubApiWrapper.Repo(id: "openai/whisper-large-v3")
         let tokenizer = hub.localRepoLocation(tokenizerRepo).appending(path: "tokenizer.json")
@@ -203,7 +203,7 @@ public struct MeetingTranscriber {
 
     /// WhisperKit's own first-token threshold empties a window that starts mid-sentence, so it
     /// is off; OpenAI's Whisper has no such check.
-    private static func options(in language: Language?) -> DecodingOptions {
+    static func options(in language: Language?) -> DecodingOptions {
         DecodingOptions(
             language: language?.rawValue,
             detectLanguage: language == nil,

@@ -81,6 +81,20 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
 Every reply names each meeting by its date and its name, such as 3.11. Viral Vegans x Taito
 United, never by its folder alone.
 
+## Following a meeting being recorded
+
+When the user asks to read or follow a meeting while it is still being recorded, such as to write
+its minutes during it, start the live text with the Bash tool's `run_in_background`, and read the
+meeting's `live.md` whenever the user asks what was said. Each line comes about half a minute
+after it was said, with its time and no speaker. Started midway, it transcribes from the start
+first and catches up at about three times the speed of speech; `--from <second>` starts later. It
+ends by itself once the recording does. The meeting stays `litteroimatta`, and the steps above
+finish it afterwards as usual:
+
+```bash
+~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli live
+```
+
 ## The page
 
 `litteroi-cli page` writes `palaveri.html` into the meeting folder: the questions, the minutes and
