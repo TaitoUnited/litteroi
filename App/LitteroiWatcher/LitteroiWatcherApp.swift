@@ -112,13 +112,15 @@ final class CallWatcher: ObservableObject {
         if self.autoRecorded != autoRecorded {
             self.autoRecorded = autoRecorded
         }
-        let micUsers = AudioProcesses.micUsers()
-        if recording != micUsers.contains(CallDetector.litteroi) {
-            recording.toggle()
+        // Litteroi's mic input stops for a moment whenever a call app starts or stops voice
+        // processing, so a recording is told by the app running, not by its mic.
+        if recording != running {
+            recording = running
             recordingForCall = recording && Date.now < startingForCallUntil
             stopsWithCall = recording && Date.now < autoStartingUntil
             CallPrompt.close()
         }
+        let micUsers = AudioProcesses.micUsers()
         switch detector.update(micUsers: micUsers) {
         case .started(let app, let litteroiRecording):
             call = app
