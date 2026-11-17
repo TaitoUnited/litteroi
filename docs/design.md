@@ -51,6 +51,11 @@
 - Apple's voice processing on the mic would cancel echo while recording, but it is not known to
   cancel what other apps play, may turn their sound down during the call, and would change the
   recording for good.
+- While a call app runs voice processing on the built-in mic, macOS hands the mic to other apps
+  as 3 channels with a discrete layout, which a test on 17.11.2026 showed to carry the same room
+  sound at about the same level. AVAudioConverter's downmix turns that layout into silence without
+  an error, which left the mic track of that day's daily empty, so `TrackWriter` takes the mean of
+  a buffer's channels itself before converting it to 16 kHz.
 - macOS filters the mic of any app, one with no voice processing too, whose Mic Mode in the menu
   bar is Voice Isolation, which Apple describes as isolating the voice and attenuating other
   signals. That changes `mic.caf` for good, may turn down the people further from the Mac in a

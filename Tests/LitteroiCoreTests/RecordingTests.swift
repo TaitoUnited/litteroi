@@ -106,6 +106,21 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(partial.count > 16_000)
 }
 
+@Test func keepsTheSoundOfAMicDeliveredInDiscreteChannels() throws {
+    let url = try temporaryFolder().appending(path: "mic.caf")
+    let writer = try TrackWriter(url: url)
+    let layout = try #require(AVAudioChannelLayout(layoutTag: kAudioChannelLayoutTag_DiscreteInOrder | 3))
+    let discrete = AVAudioFormat(standardFormatWithSampleRate: 48_000, channelLayout: layout)
+    for _ in 0..<20 {
+        try writer.append(sine(discrete, seconds: 0.1))
+    }
+    #expect(writer.level > 0.5)
+    writer.close()
+    let audio = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
+    #expect(abs(audio.count - 32_000) < 400)
+    #expect(audio.contains { abs($0) > 0.4 })
+}
+
 @Test func readsATapAtTheRateItsDeviceRunsAt() throws {
     let url = try temporaryFolder().appending(path: "call.caf")
     let writer = try TrackWriter(url: url)

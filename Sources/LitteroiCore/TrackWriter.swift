@@ -38,15 +38,15 @@ public final class TrackWriter: @unchecked Sendable {
     public var level: Float { latestLevel.withLock { $0 } }
 
     public func append(_ buffer: AVAudioPCMBuffer) throws {
-        guard let file, buffer.frameLength > 0 else { return }
-        if converter?.inputFormat != buffer.format {
-            converter = AVAudioConverter(from: buffer.format, to: Self.format)
+        guard let file, buffer.frameLength > 0, let input = Self.mono(buffer) ?? Self.copy(buffer) else { return }
+        if converter?.inputFormat != input.format {
+            converter = AVAudioConverter(from: input.format, to: Self.format)
             converter?.downmix = true
         }
-        guard let converter, let input = Self.copy(buffer) else { return }
+        guard let converter else { return }
 
-        let ratio = Self.format.sampleRate / buffer.format.sampleRate
-        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 1
+        let ratio = Self.format.sampleRate / input.format.sampleRate
+        let capacity = AVAudioFrameCount(Double(input.frameLength) * ratio) + 1
         guard let output = AVAudioPCMBuffer(pcmFormat: Self.format, frameCapacity: capacity) else { return }
         var supplied = false
         var conversionError: NSError?
@@ -65,6 +65,34 @@ public final class TrackWriter: @unchecked Sendable {
         try file.write(from: output)
         let level = Self.level(of: output)
         latestLevel.withLock { $0 = level }
+    }
+
+    /// The mean of a multichannel float buffer's channels, at its own rate. AVAudioConverter's
+    /// downmix turns a discrete channel layout into silence without an error, and macOS hands
+    /// out the built-in mic in one, 3 channels, while a call app runs voice processing on it.
+    static func mono(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        let channels = Int(buffer.format.channelCount)
+        guard channels > 1, let samples = buffer.floatChannelData,
+              let format = AVAudioFormat(
+                  commonFormat: .pcmFormatFloat32,
+                  sampleRate: buffer.format.sampleRate,
+                  channels: 1,
+                  interleaved: false
+              ),
+              let mono = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: buffer.frameLength),
+              let mixed = mono.floatChannelData?[0]
+        else { return nil }
+        mono.frameLength = buffer.frameLength
+        let interleaved = buffer.format.isInterleaved
+        let scale = 1 / Float(channels)
+        for frame in 0..<Int(buffer.frameLength) {
+            var sum: Float = 0
+            for channel in 0..<channels {
+                sum += interleaved ? samples[0][frame * buffer.stride + channel] : samples[channel][frame]
+            }
+            mixed[frame] = sum * scale
+        }
+        return mono
     }
 
     private static func copy(_ buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {

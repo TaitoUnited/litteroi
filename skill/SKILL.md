@@ -171,11 +171,11 @@ the 17.11. daily it ran from start to end with the lid open, while Meet in Firef
 voice processing on the same built-in mic. While a call app does that, macOS hands the mic to
 other apps as 3 channels with a discrete layout, and Litteroi's conversion to 16 kHz mono turns
 those into zeros with no error, as a test on 17.11.2026 showed; the user's mute in the call plays
-no part. Until Litteroi mixes such input down itself, a meeting whose call app takes the built-in
-mic loses the mic track. The reply names each stretch as a recording fault with what the Mac's
-log shows for it, such as a `Clamshell state changed` line of `loginwindow`, and the minutes say
-the mic recorded nothing then and guess at no line of the user's. The user asked for this check
-on 17.11.2026.
+no part. Litteroi mixes such input down itself from the build of 17.11.2026 on, so a zero mic
+track from a later meeting has another cause. The reply names each stretch as a recording fault
+with what the Mac's log shows for it, such as a `Clamshell state changed` line of `loginwindow`,
+and the minutes say the mic recorded nothing then and guess at no line of the user's. The user
+asked for this check on 17.11.2026.
 
 `nimet-ruudulla.txt` lists the names the call app showed on the screen, one a line with when each
 was first and last on screen, and the calendar event lists who was invited. Both say who was in
