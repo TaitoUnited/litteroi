@@ -46,8 +46,11 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   from `nimi.txt` when it has one, and `litteroi-cli transcribe-pending`
   transcribes the `litteroimatta` ones, skipping the newest while the app is recording it. Both
   transcribe commands also read the names on the screen videos into `nimet-ruudulla.txt`, and
-  `litteroi-cli names <meeting folder>` reads them again. A screen video that does not open, as
-  one a crash cut off in its first seconds, is left out with a warning, by `page` too.
+  `litteroi-cli names <meeting folder>` reads them again. They then read whose tile Google Meet
+  outlined as speaking while each speaker label's words were said into `puhujat-ruudulla.txt`, and
+  `litteroi-cli speakers <meeting folder>` reads that again for a transcribed meeting. A screen
+  video that does not open, as one a crash cut off in its first seconds, is left out with a
+  warning, by `page` too.
   `litteroi-cli words <meeting folder>`
   adds word times to a `transcript.json` from before they were kept, by transcribing the meeting
   again without changing its text. `litteroi-cli page <meeting folder>`
@@ -76,8 +79,9 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   Whisper names a window's language from how it starts, so windows are cut at speaker turns.
 - Audio and screen videos never leave the Mac, and the app and `litteroi-cli` call no cloud API.
   Text reaches Claude only through the skill: a meeting's transcript, names included, the names
-  `litteroi-cli` reads from the screen videos on the Mac, and the glossary. No session opens the
-  audio or the screen videos.
+  `litteroi-cli` reads from the screen videos on the Mac, which of those names' tiles the call
+  outlined as speaking, and the glossary. No session opens the audio or the screen videos, and a
+  new reading of them is worked out from numbers `litteroi-cli` prints, never from a frame.
 - Models, recordings and transcripts never go under `~/Documents`, which iCloud may sync.
   WhisperKit defaults to `~/Documents/huggingface`, so always pass `downloadBase`.
 - User-facing text is written in Finnish, and every string gets its English in the target's

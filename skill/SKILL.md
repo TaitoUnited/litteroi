@@ -6,8 +6,9 @@ description: Finish Litteroi meetings. Transcribes recordings in ~/Litteroi that
 # Litteroi finish
 
 Run bare, this finishes every meeting under `~/Litteroi` that is not finished yet. The audio and
-the screen videos never leave the Mac and no session opens them; the transcript and the names
-`litteroi-cli` reads from the screen videos on the Mac go to Claude.
+the screen videos never leave the Mac and no session opens them; the transcript, the names
+`litteroi-cli` reads from the screen videos on the Mac and whose tile the call outlined as speaking
+go to Claude.
 
 ## Steps
 
@@ -37,9 +38,10 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
 
 3. When any meeting is `litteroimatta`, transcribe them all, one after another. The app only
    records, so this is where Whisper runs, and where the names on the screen videos are read into
-   `nimet-ruudulla.txt`; a meeting the app is still recording is left alone. A warning that a
-   screen video does not open, `näyttövideo ... ei aukea`, means a crash cut it off: its names
-   are not read and the page shows no video for it, which the reply says.
+   `nimet-ruudulla.txt` and whose tile was outlined as speaking into `puhujat-ruudulla.txt`; a
+   meeting the app is still recording is left alone. A warning that a screen video does not open,
+   `näyttövideo ... ei aukea`, means a crash cut it off: its names and outlines are not read and
+   the page shows no video for it, which the reply says.
    Whisper takes about 20 minutes per hour of audio on this Mac, so run it with the Bash tool's
    `run_in_background`, tell the user it is running, and go on with the next steps for the
    `litteroitu` meetings meanwhile. When its notification arrives, list the meetings again and
@@ -53,8 +55,9 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
    side is likely nonsense: name the meeting and both lengths in the reply, and finish it only
    once the user has had the track repaired or says to go on.
 
-4. Read each `litteroitu` meeting's `transcript.md`, its `nimet-ruudulla.txt` when it has one,
-   and `~/Litteroi/sanasto.txt`, name the meeting as below and write `korjattu.md`, with the
+4. Read each `litteroitu` meeting's `transcript.md`, its `nimet-ruudulla.txt` and
+   `puhujat-ruudulla.txt` when it has them, and `~/Litteroi/sanasto.txt`, name the meeting as
+   below and write `korjattu.md`, with the
    speaker labels the user has not named yet left as they are. Then write the questions about who
    the speakers are, and the meeting's name when it is still open, into the meeting's
    `kysymykset.md`, quoting the lines of `korjattu.md`, and write the meeting's page, where the
@@ -183,6 +186,37 @@ the call, not who spoke a line, so a guess still rests on the lines; a name on t
 the event does not list may be text from another window, such as a document, and is named as
 such. Someone on the screen or in the event who matches no speaker is named in the questions, so
 the user can say whether they spoke.
+
+`puhujat-ruudulla.txt` says whose tile Google Meet outlined as speaking while each label's words
+were said, read from every frame of the screen videos. Its first lines hold one speaker label
+each, tab-separated: the label, the seconds of its words, the seconds of those with an outlined
+tile on screen, then each name on those tiles with its share of the outlined seconds, as in
+`Puhuja 2	178 s	99 s	Emma Hammer 97 %`. After an empty line come the transcript's lines with half
+a second or more of outline: timestamp, label, outlined seconds and names. A meeting with screen
+videos that was transcribed before 17.11.2026 gets the file in a few seconds with:
+
+```bash
+~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli speakers ~/Litteroi/<meeting>
+```
+
+- A label with 10 s or more of outline and one name at 70 % or more gets that name as its guess,
+  and the question's own line says so with the share and the seconds, as in `Emma Hammer, jonka
+  ruutu oli kehystettynä 97 % ajasta (99 s / 178 s)`. In the seven Meet meetings finished by
+  17.11.2026 all 15 such labels had that name in the minutes.
+- With fewer seconds or a lower share the tile is a hint beside what the lines say, and the
+  question names both. Of 9 such labels, 6 had the top name in the minutes.
+- A label with many outlined seconds split between two names likely mixes two people: ask that,
+  and take each line's speaker from its own row when the row has 5 s or more of outline and one
+  name at 80 % or more, which matched the minutes on 65 of 66 lines. A row with less matched on
+  60 of 73, so it decides nothing alone.
+- The outline shows whose microphone carried the sound, not whose voice. Two people in one room
+  speak through one tile, or through none when both are muted. A short line said while someone
+  else talks shows the tile of the one talking. The Mac never plays the user's own microphone, so
+  the user's tile is left out for every label but their own.
+- The file knows only the time Meet's tiles were on the screen, which the outlined seconds show:
+  while the user looked at another window there is nothing, and a tile whose name is hidden or cut
+  short is left out. Teams, Signal and other call apps are not read, so for those, and for a label
+  with no outlined seconds, the guess rests on the lines as before.
 
 `kysymykset.md` holds the same questions as a numbered list in Markdown, each context line a
 sub-item in the transcript's own form, `[00:12:06] **Puhuja 2:** text`, so the page plays it.

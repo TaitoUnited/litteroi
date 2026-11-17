@@ -7,7 +7,7 @@ struct LitteroiCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "litteroi-cli",
         abstract: "Litteroi suomenkielisen palaverin äänitiedostoista.",
-        subcommands: [Transcribe.self, TranscribePending.self, Words.self, Names.self, Status.self, Page.self, Export.self, PDF.self],
+        subcommands: [Transcribe.self, TranscribePending.self, Words.self, Names.self, Speakers.self, Status.self, Page.self, Export.self, PDF.self],
         defaultSubcommand: Transcribe.self
     )
 }
@@ -53,7 +53,10 @@ struct Transcribe: AsyncParsableCommand {
         }
 
         try await transcribe(mic: mic, call: callURL, into: folder, title: title, models: models)
-        if let screenMeeting { try await readScreenNames(screenMeeting) }
+        if let screenMeeting {
+            try await readScreenNames(screenMeeting)
+            try await readScreenSpeakers(screenMeeting)
+        }
     }
 }
 
@@ -81,6 +84,7 @@ struct TranscribePending: AsyncParsableCommand {
             do {
                 try await transcribe(mic: meeting.mic, call: call, into: meeting.url, title: meeting.title, models: models)
                 try await readScreenNames(meeting)
+                try await readScreenSpeakers(meeting)
             } catch {
                 FileHandle.standardError.write(Data("\(meeting.title): \(error.localizedDescription)\n".utf8))
                 failed = true
@@ -157,6 +161,32 @@ private func readScreenNames(_ meeting: MeetingFolder) async throws {
     guard let seen = try await ScreenNames.read(meeting, unreadable: { warnUnreadable($0, in: meeting) }) else { return }
     try ScreenNames.write(seen, to: meeting)
     print("\(seen.count) nimeä ruudulla: \(meeting.screenNames.path)")
+}
+
+struct Speakers: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Lukee näyttövideoista tällä Macilla, kenen ruudun Meet kehysti puhujaksi, ja kirjoittaa tiedostoon puhujat-ruudulla.txt, kenen ruutu oli kehystettynä kunkin puhujan ja rivin aikana. Litteroi tekee tämän itse."
+    )
+
+    @Argument(help: "Palaverikansio.")
+    var folder: String
+
+    mutating func run() async throws {
+        let meeting = MeetingFolder(url: URL(filePath: folder))
+        try await readScreenSpeakers(meeting) { warnUnreadable($0, in: meeting) }
+    }
+}
+
+/// Like the names, written only for a meeting whose screen videos open. The names are read first
+/// and warn about a video that does not, so this warns only when run on its own.
+private func readScreenSpeakers(_ meeting: MeetingFolder, unreadable: (URL) -> Void = { _ in }) async throws {
+    guard !meeting.screens.isEmpty else { return }
+    let transcript = try Transcript.read(meeting.transcriptJSON)
+    FileHandle.standardError.write(Data("Luetaan näytöiltä, kenen ruutu oli kehystetty...\n".utf8))
+    guard let sightings = try await ScreenSpeakers.read(meeting, unreadable: unreadable) else { return }
+    try ScreenSpeakers.report(for: transcript, from: sightings).write(to: meeting.screenSpeakers, atomically: true, encoding: .utf8)
+    let seconds = Int(sightings.reduce(0) { $0 + $1.end - $1.start })
+    print("Kehystetty ruutu näkyi \(seconds) s: \(meeting.screenSpeakers.path)")
 }
 
 private func warnUnreadable(_ screen: URL, in meeting: MeetingFolder) {

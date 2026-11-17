@@ -79,6 +79,8 @@ public struct MeetingFolder: Hashable, Sendable {
     public var page: URL { url.appending(path: "palaveri.html") }
     /// The names read from the screen videos, which the skill reads in place of the videos.
     public var screenNames: URL { url.appending(path: "nimet-ruudulla.txt") }
+    /// Whose tile the call app outlined while each speaker label spoke, read from the screen videos.
+    public var screenSpeakers: URL { url.appending(path: "puhujat-ruudulla.txt") }
     public var listening: URL { url.appending(path: "palaveri.m4a") }
     public func browserCopy(of screen: URL) -> URL { screen.deletingPathExtension().appendingPathExtension("mp4") }
 

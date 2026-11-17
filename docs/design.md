@@ -88,6 +88,42 @@
   a list of the call apps' and browsers' labels, that stay on screen for 2 minutes or more in at
   least a third of the frames. A one-letter misreading counts with the name. No face recognition:
   a model that recognises faces across meetings would be biometric data like voice profiles.
+- From the same videos `litteroi-cli` reads whose tile Google Meet outlined as speaking, into
+  `puhujat-ruudulla.txt`, since the user asked on 17.11.2026: "what you dont check from video
+  when someone speaks so you could more easily map participants". Meet draws a thin line around
+  the tile its sound comes from: #b4ccfb around a tile that shows a camera, and a light tint of
+  the tile's own colour around one that shows a picture, #feb9ca around a dark red one. The tool
+  looks in every frame for a thin top and bottom line of one light tint over the same columns, at
+  least 100 pixels wide and 50 apart, and reads the name in the tile's bottom left corner with
+  Vision. It does not look for the sides, which the video does not keep where a tile shows a
+  camera. A box filled with the tint, such as a highlighted cell of a spreadsheet someone shares,
+  is no outline, and an outlined tile with no name to read is left out. Finding the lines took 6 s
+  for a 24-minute video and reading the name in each frame 135 s more, so a name is read again
+  only when the white pixels where it stood change, which brought the whole to 5 s.
+- The recorder writes a frame whenever the screen changes, up to 2 a second, and the outline
+  coming and going is such a change, so an outline is timed to half a second. It follows the sound:
+  taken as 0, 0.5, 1, 1.5 and 2 s late, the first version of the reading named another person than
+  the minutes on 20, 15, 11, 13 and 17 lines, so the tool takes it as 1 s late.
+- For each speaker label, and for each line of the transcript, the file gives the seconds of its
+  words, the seconds of those with an outlined tile on screen and each name's share of them. The
+  Mac never plays the user's own microphone, so the user's tile is outlined while they talk over
+  a label of the call track, never as that label's voice, and is left out for those labels.
+- The reading was checked on 17.11.2026 against the names in `korjattu.md` of the 13 finished
+  meetings that still had their screen videos. Seven were Meet calls. Of their lines with an
+  outline, the top name was the line's speaker on 125 of 139, and on 73 of 76 with 5 s or more of
+  outline; of their labels on 21 of 24, and on 15 of 15 with 10 s or more of outline and one name
+  at 70 % or more. The misses are short lines said while someone else talks, where the outline
+  stays on the one talking, and one label of the 9.11. interview whose 9 s all showed another
+  participant's tile. The 17.11. daily had 35 s of outline in 14 minutes, as other windows were in
+  front of Meet for the rest: the file knows only the time the tiles were on screen.
+- The other six had no outline to read. Four were Signal calls, in which the tool found no such
+  outline. The 16.11. Manager call ran in Firefox with small tiles outlined in a darker #888cdc,
+  likely Teams. Its tiles cut the names short, and on the four lines where a name could be read
+  it was not the speaker the minutes name, so that colour is left out until Teams is looked at on
+  its own. The sixth had 10 s of video.
+- No session opened a frame for this. The colours and positions came from numbers a throwaway
+  tool printed: runs of one colour, the boxes of name-shaped lines and the colours at given
+  points.
 - Before writing, the skill asks the user who each speaker is, quoting the lines around a few of
   each speaker's lines with its own guess from how people address each other. A file of names
   written ahead of each meeting was too much work, and the user knows the voices. The user asked
@@ -270,7 +306,8 @@
 
 - `~/Litteroi/<yyyy-mm-dd-hhmm>/` holds `mic.caf`, `call.caf`, `screen-<n>-<second>.mov` for each
   display and stretch of screen recording, `.nauhoitus` while the app records,
-  `transcript.md` and `transcript.json`, `nimet-ruudulla.txt` when the screens were recorded,
+  `transcript.md` and `transcript.json`, `nimet-ruudulla.txt` and `puhujat-ruudulla.txt` when
+  the screens were recorded,
   `nimi.txt`, `lyhenne.txt`, `kysymykset.md` while the skill waits for the user's
   answers, once Claude has finished the meeting `korjattu.md` and `muistio.md`, and the page
   `palaveri.html` with `palaveri.m4a` and a `.mp4` copy of each screen video. Not `~/Documents`
@@ -307,7 +344,8 @@
   the user added.
 - The screen videos show what was shared and the participants' video, so they stay on the Mac
   like the audio: the skill reads only text, and no session opens them. The names read from them
-  go to Claude like the names in the transcript, and the other text on the screen does not.
+  go to Claude like the names in the transcript, with which of them had the outlined tile while
+  each line was said, and the other text on the screen does not.
 - Voice profiles that recognise people across meetings are biometric data (GDPR Art. 9) and need
   each person's explicit consent. Until then, the user names the speakers when the skill asks.
 - The transcript goes to Claude with its names. Hiding the names of a hand-written list first
