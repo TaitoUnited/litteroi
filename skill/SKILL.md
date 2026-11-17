@@ -155,23 +155,24 @@ confirm a guess, give a name, say two labels are one person, say a label mixes t
 lines unclear, which makes them `Epäselvä`, or say they do not know; a question the user cannot
 settle from the text is asked again with its context.
 
-When the user's own track holds no speech, or only what Whisper makes of silence, such as `you`,
-check the track before any reply or the minutes say why. A stretch in which every sample of
-`mic.caf` is zero means Litteroi got no sound from the Mac at all, since a live mic never gives
-exact zero; this lists each one over 5 s with its start and end in seconds:
+When the mic track holds no speech, or only what Whisper makes of silence, such as `you`, check
+the track before any reply or the minutes say why. A stretch in which every sample of `mic.caf`
+is zero means Litteroi got no sound from the Mac's mic at all, since a live mic never gives exact
+zero; this lists each one over 5 s with its start and end in seconds:
 
 ```bash
 ffmpeg -hide_banner -nostats -i ~/Litteroi/<meeting>/mic.caf \
   -af silencedetect=noise=-85dB:d=5 -f null - 2>&1 | grep silence_
 ```
 
-A mute in the call app does not cause it: Litteroi records the mic itself, so a muted user's
-room still records; of the meetings up to 17.11.2026 only two had such a stretch, the 5.11. daily
-from 00:23:54 to its end and the 17.11. daily from start to end. The reply names each
-stretch as a recording fault, and the minutes say the user's mic recorded nothing then and guess
-at no line of theirs. Whether the user was muted in the call is the user's to say, since the audio
-does not show it. The user asked for this check on 17.11.2026, after a daily's mic track was zero
-from start to end while they sat muted in the call in the room with another attendee.
+Of the meetings up to 17.11.2026 only two had such a stretch. In the 5.11. daily it ran from
+00:23:54 to the end, from the moment the MacBook's lid closed, which cuts its built-in mic. In
+the 17.11. daily it ran from start to end with the lid open, while Meet in Firefox ran Apple's
+voice processing on the same built-in mic and the user sat muted in the call; that the two
+together zero the mic for Litteroi is not confirmed. The reply names each stretch as a recording
+fault with what the Mac's log shows for it, such as a `Clamshell state changed` line of
+`loginwindow`, and the minutes say the mic recorded nothing then and guess at no line of the
+user's. The user asked for this check on 17.11.2026.
 
 `nimet-ruudulla.txt` lists the names the call app showed on the screen, one a line with when each
 was first and last on screen, and the calendar event lists who was invited. Both say who was in
