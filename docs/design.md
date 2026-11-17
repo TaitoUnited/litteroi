@@ -121,6 +121,10 @@
   likely Teams. Its tiles cut the names short, and on the four lines where a name could be read
   it was not the speaker the minutes name, so that colour is left out until Teams is looked at on
   its own. The sixth had 10 s of video.
+- The skill still asks about every label and gives the tile's share as its guess, which the
+  user chose on 17.11.2026 over naming a label unasked once its tile is sure. The outline shows
+  whose microphone carried the sound, so when the user sits muted beside a colleague, their own
+  voice gets that colleague's tile, and only the user can tell that from the quoted lines.
 - No session opened a frame for this. The colours and positions came from numbers a throwaway
   tool printed: runs of one colour, the boxes of name-shaped lines and the colours at given
   points.

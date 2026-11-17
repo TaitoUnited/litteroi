@@ -203,6 +203,9 @@ videos that was transcribed before 17.11.2026 gets the file in a few seconds wit
   and the question's own line says so with the share and the seconds, as in `Emma Hammer, jonka
   ruutu oli kehystettynä 97 % ajasta (99 s / 178 s)`. In the seven Meet meetings finished by
   17.11.2026 all 15 such labels had that name in the minutes.
+- Every label is still asked about, however sure its tile: the user chose that on 17.11.2026,
+  since their own voice can come through the tile of a colleague in the same room, which only
+  they can tell from the quoted lines.
 - With fewer seconds or a lower share the tile is a hint beside what the lines say, and the
   question names both. Of 9 such labels, 6 had the top name in the minutes.
 - A label with many outlined seconds split between two names likely mixes two people: ask that,
