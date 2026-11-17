@@ -156,18 +156,22 @@ lines unclear, which makes them `Epäselvä`, or say they do not know; a questio
 settle from the text is asked again with its context.
 
 When the user's own track holds no speech, or only what Whisper makes of silence, such as `you`,
-check whether the user was muted before any reply or the minutes call their lines lost. A stretch in
-which every sample of `mic.caf` is zero is a mute, since a live mic never gives exact zero; this
-lists each one over 5 s with its start and end in seconds:
+check the track before any reply or the minutes say why. A stretch in which every sample of
+`mic.caf` is zero means Litteroi got no sound from the Mac at all, since a live mic never gives
+exact zero; this lists each one over 5 s with its start and end in seconds:
 
 ```bash
 ffmpeg -hide_banner -nostats -i ~/Litteroi/<meeting>/mic.caf \
   -af silencedetect=noise=-85dB:d=5 -f null - 2>&1 | grep silence_
 ```
 
-The minutes then say the user was muted for those stretches and guess at no line of theirs. The
-user asked for this on 17.11.2026, after the minutes of a daily guessed that they spoke in gaps of
-a mic track that was zero from start to end while they sat muted in the room with another attendee.
+A mute in the call app does not cause it: Litteroi records the mic itself, so a muted user's
+room still records; of the meetings up to 17.11.2026 only two had such a stretch, the 5.11. daily
+from 00:23:54 to its end and the 17.11. daily from start to end. The reply names each
+stretch as a recording fault, and the minutes say the user's mic recorded nothing then and guess
+at no line of theirs. Whether the user was muted in the call is the user's to say, since the audio
+does not show it. The user asked for this check on 17.11.2026, after a daily's mic track was zero
+from start to end while they sat muted in the call in the room with another attendee.
 
 `nimet-ruudulla.txt` lists the names the call app showed on the screen, one a line with when each
 was first and last on screen, and the calendar event lists who was invited. Both say who was in
