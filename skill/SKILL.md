@@ -1,6 +1,6 @@
 ---
 name: litteroi
-description: Finish Litteroi meetings. Transcribes recordings in ~/Litteroi that have no transcript yet, asks the user who each speaker is, then rewrites the transcript into understandable Finnish, writes the minutes, copies the meeting to its Claude Code project and drafts its share in Slack. Load when the user types litteroi or litteroi finish, or asks to finish, correct or summarise a Litteroi meeting.
+description: Finish Litteroi meetings: transcribe, name the speakers, rewrite in Finnish, write the minutes, draft the Slack share. Load when the user types litteroi or asks to finish, correct or summarise a Litteroi meeting.
 ---
 
 # Litteroi finish
