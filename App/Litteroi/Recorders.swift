@@ -13,7 +13,7 @@ import ScreenCaptureKit
 final class MicRecorder: @unchecked Sendable {
     let writer: TrackWriter
     private static let stallLimit: TimeInterval = 2
-    private static let retryInterval: TimeInterval = 3
+    private static let retryInterval: TimeInterval = 5
     /// Used on the main thread only, as are the watchdog's fields below.
     private var engine: AVAudioEngine?
     private var configurationObserver: NSObjectProtocol?
