@@ -35,6 +35,7 @@ struct Transcribe: AsyncParsableCommand {
         var callURL = call.map { URL(filePath: $0) }
         let folder: URL
         let title: String
+        var span: TimeInterval?
         var screenMeeting: MeetingFolder?
         if isFolder.boolValue {
             let meeting = MeetingFolder(url: inputURL)
@@ -44,6 +45,7 @@ struct Transcribe: AsyncParsableCommand {
             }
             folder = output.map { URL(filePath: $0) } ?? meeting.url
             title = meeting.title
+            span = meeting.span
             if output == nil { screenMeeting = meeting }
         } else {
             guard let output else { throw ValidationError("Anna --output, kun litteroit äänitiedoston.") }
@@ -52,7 +54,7 @@ struct Transcribe: AsyncParsableCommand {
             title = inputURL.deletingPathExtension().lastPathComponent
         }
 
-        try await transcribe(mic: mic, call: callURL, into: folder, title: title, models: models)
+        try await transcribe(mic: mic, call: callURL, span: span, into: folder, title: title, models: models)
         if let screenMeeting {
             try await readScreenNames(screenMeeting)
             try await readScreenSpeakers(screenMeeting)
@@ -82,7 +84,7 @@ struct TranscribePending: AsyncParsableCommand {
         for meeting in meetings {
             let call = FileManager.default.fileExists(atPath: meeting.call.path) ? meeting.call : nil
             do {
-                try await transcribe(mic: meeting.mic, call: call, into: meeting.url, title: meeting.title, models: models)
+                try await transcribe(mic: meeting.mic, call: call, span: meeting.span, into: meeting.url, title: meeting.title, models: models)
                 try await readScreenNames(meeting)
                 try await readScreenSpeakers(meeting)
             } catch {
@@ -148,10 +150,10 @@ private var appRunning: Bool {
     !NSRunningApplication.runningApplications(withBundleIdentifier: "fi.taitounited.litteroi").isEmpty
 }
 
-private func transcribe(mic: URL, call: URL?, into folder: URL, title: String, models: String?) async throws {
+private func transcribe(mic: URL, call: URL?, span: TimeInterval?, into folder: URL, title: String, models: String?) async throws {
     let transcriber = models.map { MeetingTranscriber(modelsFolder: URL(filePath: $0)) } ?? MeetingTranscriber()
     let started = Date()
-    let transcript = try await transcriber.transcribe(mic: mic, call: call) { step in
+    let transcript = try await transcriber.transcribe(mic: mic, call: call, span: span) { step in
         FileHandle.standardError.write(Data("\(step)...\n".utf8))
     } warning: { warning in
         FileHandle.standardError.write(Data("Varoitus, \(title): \(warning)\n".utf8))

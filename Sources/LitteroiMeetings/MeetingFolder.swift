@@ -44,9 +44,21 @@ public struct MeetingFolder: Hashable, Sendable {
     }
     public var mic: URL { url.appending(path: "mic.caf") }
     public var call: URL { url.appending(path: "call.caf") }
-    /// How long the mic track runs, from its size at 16 kHz mono 16-bit; nil once it is deleted.
+    /// How long the longer track runs, from its size at 16 kHz mono 16-bit, so a mic that stopped
+    /// early does not make the meeting look short; nil once both are deleted.
     public var duration: TimeInterval? {
-        (try? mic.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map { TimeInterval($0) / 32_000 }
+        [mic, call].compactMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }.max()
+            .map { TimeInterval($0) / 32_000 }
+    }
+    /// The wall-clock time the recording ran, from when the app created the tracks to their last
+    /// write; nil when a copy lost those dates.
+    public var span: TimeInterval? {
+        let dates = [mic, call].compactMap { try? $0.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey]) }
+        guard let start = dates.compactMap(\.creationDate).min(),
+              let end = dates.compactMap(\.contentModificationDate).max(),
+              end > start
+        else { return nil }
+        return end.timeIntervalSince(start)
     }
     /// The video of display `number` from `second` of the meeting on. A recording made before the
     /// screen could be switched on and off midway has one video per display, `screen-<n>.mov`.

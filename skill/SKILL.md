@@ -25,8 +25,10 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
    ```
 
 2. List the meetings. Each line is a stage, `litteroimatta` (recorded), `litteroitu` (transcribed)
-   or `valmis` (finished), then the meeting's folder, the recording's length and its name when it
-   has one. A recording of a minute or less is most likely a slip: the reply asks whether to move
+   or `valmis` (finished), then the meeting's folder, the recording's length, from its longer
+   track, and its name when it has one. A recording of a minute or less is most likely a slip, and
+   a mic track that stopped early no longer makes a whole meeting look like one, as it did for the
+   hour's call of 18.11.2026 that showed as `21 s`: the reply asks whether to move
    its folder to the Trash with `trash`, and it waits for the answer before steps 4 and 5. The
    meeting being recorded shows as
    `nauhoitetaan (ääni)` or `nauhoitetaan (ääni ja video)`: tell the user which, and leave it
@@ -51,9 +53,15 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
    ~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli transcribe-pending
    ```
 
-   A `Varoitus` line means that meeting's call track was recorded at the wrong rate, so its call
-   side is likely nonsense: name the meeting and both lengths in the reply, and finish it only
-   once the user has had the track repaired or says to go on.
+   A `Varoitus` line about the tracks' lengths names the track that is off, against how long the
+   recording ran by the clock. A call track recorded at the wrong rate makes the call side likely
+   nonsense: name the meeting and the lengths in the reply, and finish it only once the user has
+   had the track repaired or says to go on. A mic track that stopped early, as on 18.11.2026 after
+   21 s, when a call app switched the mic's device to another rate, holds none of the user's own
+   speech after that, and nothing brings it back: the reply names the meeting, the lengths and
+   where the mic stopped, the meeting is finished from what was recorded, and the minutes say the
+   user's own lines are missing from then on. From the build of 19.11.2026 on, the app starts the
+   mic again and fills the gap with silence, so such a gap shows as a stretch of zeros instead.
 
 4. Read each `litteroitu` meeting's `transcript.md`, its `nimet-ruudulla.txt` and
    `puhujat-ruudulla.txt` when it has them, and `~/Litteroi/sanasto.txt`, name the meeting as
@@ -189,10 +197,20 @@ voice processing on the same built-in mic. While a call app does that, macOS han
 other apps as 3 channels with a discrete layout, and Litteroi's conversion to 16 kHz mono turns
 those into zeros with no error, as a test on 17.11.2026 showed; the user's mute in the call plays
 no part. Litteroi mixes such input down itself from the build of 17.11.2026 on, so a zero mic
-track from a later meeting has another cause. The reply names each stretch as a recording fault
-with what the Mac's log shows for it, such as a `Clamshell state changed` line of `loginwindow`,
-and the minutes say the mic recorded nothing then and guess at no line of the user's. The user
-asked for this check on 17.11.2026.
+track from a later meeting has another cause. From the build of 19.11.2026 on, the app fills a
+gap in which the mic gave it nothing, such as while the mic's device changed, with zeros, and its
+own log names each gap, with `mic gave no sound`, `mic back after` and `mic restarted after a
+configuration change` lines; this reads them for the hours the meeting ran:
+
+```bash
+/usr/bin/log show --start "2026-11-19 09:00:00" --end "2026-11-19 10:00:00" --style compact \
+  --predicate 'process == "Litteroi" AND eventMessage CONTAINS "Litteroi: mic"'
+```
+
+The reply names each stretch as a recording fault with what the Mac's log shows for it, such as a
+`Clamshell state changed` line of `loginwindow` or one of Litteroi's own lines, and the minutes say
+the mic recorded nothing then and guess at no line of the user's. The user asked for this check on
+17.11.2026.
 
 `nimet-ruudulla.txt` lists the names the call app showed on the screen, one a line with when each
 was first and last on screen, and the calendar event lists who was invited. Both say who was in

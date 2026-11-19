@@ -195,12 +195,72 @@ private func sine(_ format: AVAudioFormat, seconds: Double, amplitude: Float = 0
     #expect(MeetingTranscriber.hasSound(speech))
 }
 
-@Test func warnsWhenTheCallTrackIsFarFromTheMicTracksLength() {
+@Test func namesTheTrackFarFromTheRecordingsWallClockLength() {
     let second = 16_000
-    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 509 * second) == nil)
-    #expect(MeetingTranscriber.lengthWarning(mic: 30 * second, call: 22 * second) == nil)
-    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 256 * second)?.hasPrefix("Puhelun raita on 256 s ja mikrofonin 512 s.") == true)
-    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 1024 * second) != nil)
+    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 509 * second, span: 513) == nil)
+    #expect(MeetingTranscriber.lengthWarning(mic: 30 * second, call: 22 * second, span: nil) == nil)
+    // A Mac that slept stops both tracks alike, which is no fault of either.
+    #expect(MeetingTranscriber.lengthWarning(mic: 3000 * second, call: 3000 * second, span: 3600) == nil)
+
+    // 18.11.2026: the mic stopped after 21 s while the call ran on to the end.
+    #expect(MeetingTranscriber.lengthWarning(mic: 21 * second, call: 3814 * second, span: 3815) ==
+        "Mikrofonin raita on 21 s, vaikka nauhoitus kesti 3815 s. Mikrofoni lakkasi luultavasti nauhoittamasta kesken, "
+        + "joten litteraatista puuttuu sen jälkeen mikrofoniin puhuttu. Puhelun raita on kunnossa, 3814 s.")
+
+    let fast = MeetingTranscriber.lengthWarning(mic: 3814 * second, call: 1907 * second, span: 3815)
+    #expect(fast?.hasPrefix("Puhelun raita on 1907 s, vaikka nauhoitus kesti 3815 s. Puhelu on luultavasti nauhoitettu väärällä näytetaajuudella") == true)
+    #expect(fast?.hasSuffix("Mikrofonin raita on kunnossa, 3814 s.") == true)
+    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 1024 * second, span: 515)?.contains("soi liian hitaasti") == true)
+
+    let both = MeetingTranscriber.lengthWarning(mic: 21 * second, call: 1907 * second, span: 3815)
+    #expect(both?.contains("Mikrofoni lakkasi luultavasti nauhoittamasta kesken") == true)
+    #expect(both?.contains("Puhelun raita on 1907 s, vaikka nauhoitus kesti 3815 s.") == true)
+    #expect(both?.contains("kunnossa") == false)
+
+    #expect(MeetingTranscriber.lengthWarning(mic: 512 * second, call: 256 * second, span: nil)?
+        .hasPrefix("Puhelun raita on 256 s ja mikrofonin 512 s, vaikka molempien pitäisi kestää koko nauhoituksen ajan.") == true)
+}
+
+@Test func measuresAMeetingByItsLongerTrackAndItsWallClock() throws {
+    let meeting = try MeetingFolder.create(in: try temporaryFolder())
+    #expect(meeting.duration == nil && meeting.span == nil)
+    try Data(count: 21 * 32_000).write(to: meeting.mic)
+    try Data(count: 3814 * 32_000).write(to: meeting.call)
+    #expect(meeting.duration == 3814)
+
+    let start = Date(timeIntervalSinceNow: -7200)
+    for (track, end) in [(meeting.mic, start + 3815), (meeting.call, start + 3814)] {
+        try FileManager.default.setAttributes([.creationDate: start, .modificationDate: end], ofItemAtPath: track.path)
+    }
+    #expect(meeting.span == 3815)
+    try FileManager.default.setAttributes([.modificationDate: start - 60], ofItemAtPath: meeting.mic.path)
+    try FileManager.default.setAttributes([.modificationDate: start - 60], ofItemAtPath: meeting.call.path)
+    #expect(meeting.span == nil)
+}
+
+@Test func fillsAGapInATrackWithSilenceSoLaterSoundKeepsItsTime() throws {
+    let url = try temporaryFolder().appending(path: "mic.caf")
+    let writer = try TrackWriter(url: url)
+    let format = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1)!
+    try writer.append(sine(format, seconds: 1), at: 0.1)
+    try writer.append(sine(format, seconds: 1), at: 1.3)
+    #expect(abs(writer.seconds - 2) < 0.05)
+    try writer.append(sine(format, seconds: 1), at: 4)
+    #expect(writer.level > 0.5)
+    try writer.padSilence(until: 7)
+    #expect(writer.level == 0)
+    try writer.padSilence(until: 7.3)
+    writer.close()
+
+    let audio = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
+    #expect(abs(audio.count - 7 * 16_000) < 400)
+    func loud(_ from: Double, _ to: Double) -> Bool {
+        audio[Int(from * 16_000)..<Int(to * 16_000)].contains { abs($0) > 0.3 }
+    }
+    #expect(loud(0.1, 1.9))
+    #expect(!loud(2.1, 3.9))
+    #expect(loud(4.1, 4.9))
+    #expect(!loud(5.1, 7))
 }
 
 @Test func rendersAPageWhoseTimestampsPlayTheMeeting() {

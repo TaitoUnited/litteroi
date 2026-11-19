@@ -21,6 +21,7 @@ public struct MeetingTranscriber {
     public func transcribe(
         mic: URL,
         call: URL?,
+        span: TimeInterval? = nil,
         progress: (String) -> Void = { _ in },
         warning: (String) -> Void = { _ in }
     ) async throws -> Transcript {
@@ -36,7 +37,7 @@ public struct MeetingTranscriber {
             let (results, language) = try await transcribed([("Litteroidaan mikrofoni", micChunks)], with: whisper, progress: progress)
             return Transcript(utterances: Self.labelled(results[0], by: speakers, in: language))
         }
-        if let mismatch = Self.lengthWarning(mic: micAudio.count, call: callAudio.count) {
+        if let mismatch = Self.lengthWarning(mic: micAudio.count, call: callAudio.count, span: span) {
             warning(mismatch)
         }
 
@@ -236,14 +237,46 @@ public struct MeetingTranscriber {
     }
 
     /// Both tracks run from the start of the recording to its end, the call's a few seconds late
-    /// at most, so a call track far shorter or longer than the mic track was recorded at the wrong
-    /// rate: it plays too fast or too slow, and its timestamps are off.
-    static func lengthWarning(mic: Int, call: Int, sampleRate: Int = 16_000) -> String? {
+    /// at most, so when their lengths differ, the one farther from the recording's wall-clock span
+    /// is off, and so is the other when it too is far from it. A mic track short of the span stopped
+    /// midway, as on 18.11.2026; a track longer than it, or a short call track, was most likely
+    /// recorded at the wrong rate, which plays it too slow or too fast and puts its timestamps off.
+    /// Without the span, as for audio files given by hand, the warning cannot say which track is off.
+    static func lengthWarning(mic: Int, call: Int, span: TimeInterval?, sampleRate: Int = 16_000) -> String? {
         let micSeconds = mic / sampleRate
         let callSeconds = call / sampleRate
-        guard abs(callSeconds - micSeconds) > max(10, micSeconds / 10) else { return nil }
-        return "Puhelun raita on \(callSeconds) s ja mikrofonin \(micSeconds) s. Puhelu on luultavasti nauhoitettu "
-            + "väärällä näytetaajuudella, joten se soi liian nopeasti tai hitaasti ja sen aikaleimat ovat väärin."
+        let tolerance = max(10, max(micSeconds, callSeconds) / 10)
+        guard abs(callSeconds - micSeconds) > tolerance else { return nil }
+        guard let span else {
+            return "Puhelun raita on \(callSeconds) s ja mikrofonin \(micSeconds) s, vaikka molempien pitäisi kestää koko "
+                + "nauhoituksen ajan. Lyhyempi lakkasi luultavasti kesken, tai puhelu on nauhoitettu väärällä näytetaajuudella, "
+                + "jolloin se soi liian nopeasti tai hitaasti ja sen aikaleimat ovat väärin."
+        }
+        let spanSeconds = Int(span.rounded())
+        let micMiss = abs(micSeconds - spanSeconds)
+        let callMiss = abs(callSeconds - spanSeconds)
+        let micOff = micMiss >= callMiss || micMiss > tolerance
+        let callOff = callMiss > micMiss || callMiss > tolerance
+        var sentences: [String] = []
+        if micOff {
+            sentences.append("Mikrofonin raita on \(micSeconds) s, vaikka nauhoitus kesti \(spanSeconds) s.")
+            sentences.append(micSeconds < spanSeconds
+                ? "Mikrofoni lakkasi luultavasti nauhoittamasta kesken, joten litteraatista puuttuu sen jälkeen mikrofoniin puhuttu."
+                : "Mikrofoni on luultavasti nauhoitettu väärällä näytetaajuudella, joten se soi liian hitaasti ja sen aikaleimat ovat väärin.")
+        }
+        if callOff {
+            sentences.append("Puhelun raita on \(callSeconds) s, vaikka nauhoitus kesti \(spanSeconds) s.")
+            sentences.append(callSeconds > spanSeconds
+                ? "Puhelu on luultavasti nauhoitettu väärällä näytetaajuudella, joten se soi liian hitaasti ja sen aikaleimat ovat väärin."
+                : "Puhelu on luultavasti nauhoitettu väärällä näytetaajuudella, jolloin se soi liian nopeasti ja sen aikaleimat ovat "
+                    + "väärin, tai sen nauhoitus lakkasi kesken.")
+        }
+        if !callOff {
+            sentences.append("Puhelun raita on kunnossa, \(callSeconds) s.")
+        } else if !micOff {
+            sentences.append("Mikrofonin raita on kunnossa, \(micSeconds) s.")
+        }
+        return sentences.joined(separator: " ")
     }
 
     private func diarized(_ audio: [Float]) async throws -> DiarizationResult {

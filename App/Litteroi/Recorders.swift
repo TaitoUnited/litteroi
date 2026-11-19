@@ -1,50 +1,138 @@
 import AVFoundation
 import CoreAudio
 import LitteroiCore
+import os
 import ScreenCaptureKit
 
-/// Records the default microphone. A device change, such as headphones being plugged in,
-/// restarts the engine with the new format.
-final class MicRecorder {
+/// Records the default microphone. A configuration change, such as headphones being plugged in or
+/// a call app opening the mic at another rate, stops AVAudioEngine, and the engine keeps the old
+/// rate: on 18.11.2026 a tap installed again on it was refused with "Failed to create tap, config
+/// change pending!" in the log alone, and the engine ran on without a tap until the meeting ended.
+/// So each change gets a new engine, a mic that gives no sound for `stallLimit` seconds gets one
+/// too, and the gap is filled with silence, so the track keeps the meeting's time.
+final class MicRecorder: @unchecked Sendable {
     let writer: TrackWriter
-    private let engine = AVAudioEngine()
+    private static let stallLimit: TimeInterval = 2
+    private static let retryInterval: TimeInterval = 3
+    /// Used on the main thread only, as are the watchdog's fields below.
+    private var engine: AVAudioEngine?
     private var configurationObserver: NSObjectProtocol?
+    private var watchdog: Timer?
+    private var lastAttempt: TimeInterval = 0
+    private var silentSince: TimeInterval?
+    private var loggedFailure = false
+    private var startHostTime: UInt64 = 0
+    /// The tap and the watchdog both write to the track.
+    private let writing = NSLock()
+    /// The second of the track the latest buffer ends at.
+    private let heard = OSAllocatedUnfairLock<TimeInterval>(initialState: 0)
 
     init(url: URL) throws {
         writer = try TrackWriter(url: url)
     }
 
     func start() throws {
-        try installTapAndStart()
+        startHostTime = mach_absolute_time()
+        try startEngine()
         configurationObserver = NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange,
-            object: engine,
+            object: nil,
             queue: .main
-        ) { [weak self] _ in
-            try? self?.installTapAndStart()
+        ) { [weak self] notification in
+            guard let self, let engine = self.engine, (notification.object as AnyObject) === engine else { return }
+            do {
+                try self.restartEngine()
+                let format = self.engine?.inputNode.outputFormat(forBus: 0)
+                NSLog("Litteroi: mic restarted after a configuration change, \(format?.sampleRate ?? 0) Hz, \(format?.channelCount ?? 0) channels")
+            } catch {
+                NSLog("Litteroi: mic did not restart after a configuration change: \(error.localizedDescription)")
+            }
         }
+        let watchdog = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.checkSound() }
+        RunLoop.main.add(watchdog, forMode: .common)
+        self.watchdog = watchdog
     }
 
     func stop() {
+        watchdog?.invalidate()
         if let configurationObserver {
             NotificationCenter.default.removeObserver(configurationObserver)
         }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
-        writer.close()
+        stopEngine()
+        let end = now
+        writing.withLock {
+            try? writer.padSilence(until: end)
+            writer.close()
+        }
     }
 
-    private func installTapAndStart() throws {
+    /// Seconds since the recording started, on the clock the tap stamps its buffers with.
+    private var now: TimeInterval { second(atHostTime: mach_absolute_time()) }
+
+    private func second(atHostTime hostTime: UInt64) -> TimeInterval {
+        AVAudioTime.seconds(forHostTime: hostTime) - AVAudioTime.seconds(forHostTime: startHostTime)
+    }
+
+    private func startEngine() throws {
+        lastAttempt = now
+        let engine = AVAudioEngine()
         let input = engine.inputNode
-        input.removeTap(onBus: 0)
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else { throw RecorderError.noMicrophone }
-        let writer = writer
-        input.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
-            try? writer.append(buffer)
+        input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, time in
+            self?.received(buffer, at: time)
         }
         engine.prepare()
         try engine.start()
+        self.engine = engine
+    }
+
+    private func stopEngine() {
+        guard let engine else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        self.engine = nil
+    }
+
+    private func restartEngine() throws {
+        stopEngine()
+        try startEngine()
+    }
+
+    private func received(_ buffer: AVAudioPCMBuffer, at time: AVAudioTime) {
+        let length = TimeInterval(buffer.frameLength) / buffer.format.sampleRate
+        let start = time.isHostTimeValid ? second(atHostTime: time.hostTime) : now - length
+        writing.withLock { try? writer.append(buffer, at: start) }
+        heard.withLock { $0 = start + length }
+    }
+
+    /// Runs every second. While the mic gives no sound, the track keeps up with the meeting, so the
+    /// live text and a crash find it in time, and a new engine is tried every `retryInterval`.
+    private func checkSound() {
+        let now = self.now
+        let heard = self.heard.withLock { $0 }
+        guard now - heard > Self.stallLimit else {
+            if let silentSince {
+                NSLog("Litteroi: mic back after \(Int(now - silentSince)) s without sound, filled with silence")
+                self.silentSince = nil
+            }
+            return
+        }
+        if silentSince == nil {
+            silentSince = heard
+            loggedFailure = false
+            NSLog("Litteroi: mic gave no sound for \(Int(now - heard)) s, restarting it")
+        }
+        writing.withLock { try? writer.padSilence(until: now - 1) }
+        guard now - lastAttempt >= Self.retryInterval else { return }
+        do {
+            try restartEngine()
+        } catch {
+            if !loggedFailure {
+                NSLog("Litteroi: mic did not restart: \(error.localizedDescription)")
+            }
+            loggedFailure = true
+        }
     }
 }
 

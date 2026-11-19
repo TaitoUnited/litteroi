@@ -12,8 +12,12 @@ public final class TrackWriter: @unchecked Sendable {
         interleaved: false
     )!
 
+    /// How far behind its timeline a track may fall before `append(_:at:)` fills the gap.
+    public static let gapTolerance: TimeInterval = 0.5
+
     private var file: AVAudioFile?
     private var converter: AVAudioConverter?
+    private var framesWritten: AVAudioFramePosition = 0
     /// The converter leaves frames it has no use for yet in the buffer it was handed and reads
     /// them when it is called again, so it gets a copy that is kept until the next one is converted.
     private var lastInput: AVAudioPCMBuffer?
@@ -63,8 +67,38 @@ public final class TrackWriter: @unchecked Sendable {
         if let conversionError { throw conversionError }
 
         try file.write(from: output)
+        framesWritten += AVAudioFramePosition(output.frameLength)
         let level = Self.level(of: output)
         latestLevel.withLock { $0 = level }
+    }
+
+    /// Seconds of audio written so far.
+    public var seconds: TimeInterval { TimeInterval(framesWritten) / Self.format.sampleRate }
+
+    /// Appends a buffer whose first frame was heard `second` seconds into the track, after silence
+    /// for a gap before it, such as while the source device changed, so the sound after the gap
+    /// keeps its time.
+    public func append(_ buffer: AVAudioPCMBuffer, at second: TimeInterval) throws {
+        try padSilence(until: second)
+        try append(buffer)
+    }
+
+    /// Fills the track with silence up to `second` when it is more than `gapTolerance` short of it.
+    public func padSilence(until second: TimeInterval) throws {
+        guard let file, second - seconds > Self.gapTolerance,
+              let silence = AVAudioPCMBuffer(pcmFormat: Self.format, frameCapacity: AVAudioFrameCount(Self.format.sampleRate))
+        else { return }
+        // Frames the converter held back belong before the gap, not after it.
+        converter?.reset()
+        silence.floatChannelData![0].update(repeating: 0, count: Int(silence.frameCapacity))
+        var missing = AVAudioFramePosition((second * Self.format.sampleRate).rounded()) - framesWritten
+        while missing > 0 {
+            silence.frameLength = AVAudioFrameCount(min(missing, AVAudioFramePosition(silence.frameCapacity)))
+            try file.write(from: silence)
+            framesWritten += AVAudioFramePosition(silence.frameLength)
+            missing -= AVAudioFramePosition(silence.frameLength)
+        }
+        latestLevel.withLock { $0 = 0 }
     }
 
     /// The mean of a multichannel float buffer's channels, at its own rate. AVAudioConverter's
