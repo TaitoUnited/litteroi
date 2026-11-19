@@ -164,7 +164,7 @@ final class CallWatcher: ObservableObject {
                                     reads: SiteWait.reads)
             }
             if let source, autoList.contains(source) {
-                startRecording(.forDisplays, stopsWithCall: true)
+                startRecording(stopsWithCall: true)
             } else {
                 offer(source)
             }
@@ -172,7 +172,6 @@ final class CallWatcher: ObservableObject {
     }
 
     private func offer(_ source: String?) {
-        let mode = MeetingFolder.RecordingMode.forDisplays
         var actions: [CallPrompt.Action] = []
         if let source {
             actions.append(.init(title: "Aina", key: "L") { CallWatcher.shared.alwaysRecord(source) })
@@ -185,7 +184,7 @@ final class CallWatcher: ObservableObject {
         CallPrompt.show(title: source == nil ? nil : litteroidaanko,
                         message: source.map { String(localized: "Aina: litteroi jatkossa itsestään (\($0))") } ?? litteroidaanko,
                         actions: actions, dismiss: "Ei",
-                        defaultKey: mode == .audioAndVideo ? "V" : "A")
+                        defaultKey: "V")
     }
 
     /// A browser call whose site could not be read. A tab that comes to the front may be quiet for
@@ -229,7 +228,7 @@ final class CallWatcher: ObservableObject {
             guard let source, siteWait?.call == calls, call != nil, !Self.litteroiRunning else { return }
             siteWait = nil
             if autoList.contains(source) {
-                startRecording(.forDisplays, stopsWithCall: true)
+                startRecording(stopsWithCall: true)
             } else if CallPrompt.isShowing {
                 offer(source)
             }
@@ -256,7 +255,7 @@ final class CallWatcher: ObservableObject {
         }
         autoRecorded = autoList.entries
         if !Self.litteroiRunning {
-            startRecording(.forDisplays, stopsWithCall: true)
+            startRecording(stopsWithCall: true)
         }
     }
 
@@ -281,8 +280,8 @@ final class CallWatcher: ObservableObject {
 
     /// A recording opened during a call is for that call, so its end offers to stop it, or stops
     /// it when the recording started on its own. Unless a mode is asked for, the screens are
-    /// recorded only while no external display is connected.
-    func startRecording(_ mode: MeetingFolder.RecordingMode = .forDisplays, stopsWithCall: Bool = false) {
+    /// recorded too.
+    func startRecording(_ mode: MeetingFolder.RecordingMode = .audioAndVideo, stopsWithCall: Bool = false) {
         if call != nil {
             startingForCallUntil = .now + 30
             autoStartingUntil = stopsWithCall ? .now + 30 : .distantPast

@@ -28,10 +28,11 @@
   to nothing, and the last frame lasts until the recording stops. It needs the screen recording
   permission, which the first recording asks for; without it the audio is still recorded and the
   window says why the screens are not.
-- A recording takes the screens too while the Mac's own display is the only one on, and only the
-  audio while an external display is connected, as the user asked on 9.11.2026: "litteroi should
-  always start transcribing with screen save when not on external display". This holds for every
-  start that names no mode: a call recorded on its own, Control-Option-T, the menu and Spotlight.
+- A recording takes the screens too, every display, also while an external display is connected,
+  as the user asked on 19.11.2026: "next time capture always screen even though im on second
+  monitor as well". This reverses the rule of 9.11.2026, under which a recording took only the
+  audio while an external display was connected, and the AI Coffee of 18.11.2026 was recorded with
+  no screen video. This holds for every start that names no mode: a call recorded on its own, Control-Option-T, the menu and Spotlight.
   Control-Option-V records the screens too and Control-Option-A only the audio, from the start or
   midway, and the prompt's Ääni and Kuva pick one. macOS shows a purple item in the menu bar for
   as long as an app captures the screen, and no app can hide it. The user asked for both keys and
