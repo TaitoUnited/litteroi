@@ -87,7 +87,10 @@
   in the call. It reads a frame every 10 s with macOS's own text recognition (Vision, Finnish and
   English) on the Mac and keeps only lines shaped like a name, outside the menu bar and away from
   a list of the call apps' and browsers' labels, that stay on screen for 2 minutes or more in at
-  least a third of the frames. A one-letter misreading counts with the name. No face recognition:
+  least a third of the frames. A one-letter misreading counts with the name. Since the screen does
+  not show the call the whole time, a name in another window, such as a document, can pass these
+  checks too, so the skill asks the user about no name on the screen alone, as the user said on
+  20.11.2026. No face recognition:
   a model that recognises faces across meetings would be biometric data like voice profiles.
 - From the same videos `litteroi-cli` reads whose tile Google Meet outlined as speaking, into
   `puhujat-ruudulla.txt`, since the user asked on 17.11.2026: "what you dont check from video

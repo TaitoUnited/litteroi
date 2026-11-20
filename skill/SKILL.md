@@ -214,10 +214,12 @@ the mic recorded nothing then and guess at no line of the user's. The user asked
 
 `nimet-ruudulla.txt` lists the names the call app showed on the screen, one a line with when each
 was first and last on screen, and the calendar event lists who was invited. Both say who was in
-the call, not who spoke a line, so a guess still rests on the lines; a name on the screen that
-the event does not list may be text from another window, such as a document, and is named as
-such. Someone on the screen or in the event who matches no speaker is named in the questions, so
-the user can say whether they spoke.
+the call, not who spoke a line, so a guess still rests on the lines. The screen does not show the
+call the whole time, so a name on the screen that the event does not list, or that matches no
+speaker, is text from another window, such as a document, and no question names it: "joo se on
+tekstiä toisesta ikkunasta aina ota huomioon että ruudulla ei valtsii oo koko ajan puhelu", the
+user said on 20.11.2026, after a question asked whether to leave out such a name. Someone in the
+event who matches no speaker is named in the questions, so the user can say whether they spoke.
 
 `puhujat-ruudulla.txt` says whose tile Google Meet outlined as speaking while each label's words
 were said, read from every frame of the screen videos. Its first lines hold one speaker label
