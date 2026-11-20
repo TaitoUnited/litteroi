@@ -298,8 +298,10 @@ words, so nothing is lost.
   line that holds two known speakers gets both names, such as `Emma ja Clara`, and the minutes say
   where the second one starts.
 - Rewrite every word or phrase that makes no sense in its sentence into what the speaker most
-  likely meant, such as a misheard term or name, a broken ending or a word Whisper made of two,
-  until the line reads as understandable Finnish. Keep the speaker's own wording where it already
+  likely meant, such as a misheard term or name, a broken ending, an adjective whose case does
+  not match its noun's, as `Kiva viikonloppua` for `Kivaa viikonloppua`, or a word Whisper made
+  of two, until the line reads as understandable Finnish. A line that is already a whole phrase,
+  such as a greeting, is read for this too. Keep the speaker's own wording where it already
   makes sense, with its filler words and spoken forms such as `mä` and `et`: this fixes the
   hearing, it does not turn speech into written Finnish.
 - Put `[?]` after the words of a fix that is a guess. Where no reading makes sense, write
@@ -380,26 +382,25 @@ note that a machine transcribed the recording and Claude corrected it for readin
 `muistio.md`. Read it and look at every page before the reply hands it
 over.
 
-The share is a post, or a reply in a thread, of one line with the PDF attached: the meeting's
-name and date, that it was recorded and transcribed, and the topics of `muistio.md` as the words a
-later search would use, such as `Meks weekly 9.11. (nauhoitettu ja litteroitu, muistio ja
-litterointi liitteenä): bussikorjaus, Sentry, AWS-tunnukset`. People read the PDF, which carries
-the minutes and the whole transcript, so the decisions and the action items stay out of the post.
-Slack's search finds the words of a message but not those inside a PDF, so the topics are in the
-line for that search alone; Claude reads a meeting from `~/Litteroi` and the project's copy.
+The share is a post, or a reply in a thread, with the PDF attached, and its text is what the
+attendees should do, from the action items of `muistio.md`: one line per person, the name and that
+person's tasks, for a daily what they do that day. It has no line of the meeting's topics: "no need
+to give me number 2 anymore in future", the user said on 20.11.2026 about the step that gave such a
+line, and then "but you can tell what people should do today". A meeting with no action items is
+shared as the PDF alone.
 
 The place is the one the project's memory names for the meeting, such as its note on meetings.
 Without one, search Slack, private channels and DMs included, for where the attendees talk, such
 as a thread where the organiser posted minutes, ask in the reply with a recommended answer, and
 write the answer into the project's memory, so the next meeting of the series goes there too.
 
-Draft it with the `slack-draft` skill, in the place's language and register. A line of words
-alone needs no clipboard, so the reply gives it in a `text` block. Litteroi tells no one else in the call that it records, so the draft says
-the meeting was recorded, and the reply says that the user posts it only when the attendees are
-fine with that. The reply names the channel and the thread in words, and gives the PDF's `file://`
-address in a `text` block of its own, which the user copies into Firefox's address bar to read
-it, and a step to attach it in Slack's own upload dialog from Downloads > litteroi, never a Finder
-command.
+Draft it with the `slack-draft` skill, in the place's language and register. Lines of words
+alone need no clipboard, so the reply gives them in a `text` block. Litteroi tells no one else in
+the call that it records, and the PDF's title page says the meeting was recorded, so the reply
+says that the user posts it only when the attendees are fine with that. The reply names the
+channel and the thread in words, and gives the PDF's `file://` address in a `text` block of its
+own, which the user copies into Firefox's address bar to read it, and a step to attach it in
+Slack's own upload dialog from Downloads > litteroi, never a Finder command.
 
 ## The glossary
 

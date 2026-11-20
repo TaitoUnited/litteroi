@@ -180,10 +180,10 @@
   Helvetica Neue, so it needs no LibreOffice, whose headless run sees only its own fonts. Its name
   is the kind and short name of `lyhenne.txt` around the date, such as
   `daily-mon-9-nov-2026-sis-meks-transcription.pdf`, as the user asked, and the date and the
-  meeting's whole name without the file. The skill then drafts the share as one line, the meeting,
-  that it was recorded and transcribed, and its topics as search words, since people read the PDF
-  and Slack's search finds no word inside one. It goes where the project's memory says, or the skill
-  asks once and writes the answer there. The line says the meeting was recorded, since Litteroi
+  meeting's whole name without the file. The skill then drafts the post's text as what each
+  attendee should do, from the minutes' action items, which the user asked for on 20.11.2026 in
+  place of a line of the meeting's topics. It goes where the project's memory says, or the skill
+  asks once and writes the answer there. The PDF says the meeting was recorded, since Litteroi
   tells no one else in the call.
 - The skill starts Whisper (`litteroi-cli transcribe-pending`) for every recorded meeting, in
   the background, and finishes the meetings already transcribed meanwhile. Whisper takes about
