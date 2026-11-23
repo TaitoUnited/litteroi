@@ -144,6 +144,24 @@ file:///Users/<user>/Litteroi/<meeting>/palaveri.html
 ~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli page ~/Litteroi/<meeting>
 ```
 
+Before a reply hands over a page, measure the loudness of a quoted line's stretch of
+`palaveri.m4a`, from its `data-t` to its `data-end` on the page. On 23.11.2026 three people sat
+around one MacBook, the call track held nothing after 1 min 53 s, and the mic heard the room so
+faintly that the page's speech measured -58 to -68 dB against about -21 dB in earlier meetings:
+the user heard nothing. When the mean is under -45 dB, keep a copy of `palaveri.m4a` in the
+work's drafts folder and mix it again with the mic raised, which gave -22 to -26 dB that day:
+
+```bash
+ffmpeg -hide_banner -nostats -ss <start> -to <end> -i ~/Litteroi/<meeting>/palaveri.m4a \
+  -af volumedetect -f null - 2>&1 | grep mean_volume
+```
+
+```bash
+(cd ~/Litteroi/<meeting> && ffmpeg -y -i mic.caf -i call.caf -filter_complex \
+  "[0:a]highpass=f=80,dynaudnorm=f=200:g=11:p=0.95:m=100,acompressor=threshold=-24dB:ratio=3:makeup=6dB[m];[1:a]dynaudnorm=f=250:g=15:p=0.9:m=10[c];[m][c]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.95[out]" \
+  -map "[out]" -c:a aac -b:a 64k -ar 16000 -ac 1 palaveri.m4a)
+```
+
 ## The meeting's name
 
 Each meeting gets a name. When a calendar connector is there, it is the title of the user's own
