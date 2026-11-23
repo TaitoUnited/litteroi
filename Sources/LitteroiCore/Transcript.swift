@@ -39,9 +39,13 @@ public struct Utterance: Codable, Equatable, Sendable {
 
 public struct Transcript: Codable, Equatable, Sendable {
     public var utterances: [Utterance]
+    /// What the transcription says of a meeting held in one room beside a call: every line then
+    /// comes from the mic track, though the meeting has a call track. Nil for any other meeting.
+    public var room: String?
 
-    public init(utterances: [Utterance]) {
+    public init(utterances: [Utterance], room: String? = nil) {
         self.utterances = utterances
+        self.room = room
     }
 
     /// This transcript with the word times of `timed`, another transcription of the same
@@ -72,6 +76,7 @@ public struct Transcript: Codable, Equatable, Sendable {
 
     public func markdown(title: String) -> String {
         var lines = ["# \(title)", ""]
+        if let room { lines += [room, ""] }
         for utterance in utterances {
             lines.append("[\(Self.timestamp(utterance.start))] **\(utterance.speaker):** \(utterance.text)")
             lines.append("")

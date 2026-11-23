@@ -3,8 +3,8 @@ import SpeakerKit
 import WhisperKit
 
 /// Transcribes a meeting in Finnish or English. With a call track, the mic track is the user's
-/// own voice and only the call track is split by speaker; without one, the mic track is split
-/// instead.
+/// own voice and only the call track is split by speaker; without one, or when the meeting was
+/// held in one room beside a call, the mic track is split instead.
 public struct MeetingTranscriber {
     public static let whisperModel = "openai_whisper-large-v3"
 
@@ -30,12 +30,31 @@ public struct MeetingTranscriber {
 
         var micAudio = try AudioProcessor.loadAudioAsFloatArray(fromPath: mic.path)
         let callAudio = try call.map { try AudioProcessor.loadAudioAsFloatArray(fromPath: $0.path) }
-        guard let callAudio, Self.hasSound(callAudio) else {
-            progress("Erotellaan puhujat")
+        var micSpeakers: DiarizationResult?
+        var room: RoomMeeting?
+        if let callAudio, Self.hasSound(callAudio), RoomMeeting.callIsBrief(callAudio, of: max(micAudio.count, callAudio.count)) {
+            progress("Erotellaan mikrofonin puhujat")
             let speakers = try await diarized(micAudio)
+            micSpeakers = speakers
+            room = RoomMeeting(mic: micAudio, call: callAudio, speech: Self.speech(of: speakers))
+        }
+        guard let callAudio, Self.hasSound(callAudio), room == nil else {
+            let speakers: DiarizationResult
+            if let micSpeakers {
+                speakers = micSpeakers
+            } else {
+                progress("Erotellaan puhujat")
+                speakers = try await diarized(micAudio)
+            }
             let micChunks = try await chunked(micAudio, at: Self.turnStarts(of: speakers), with: whisper)
             let (results, language) = try await transcribed([("Litteroidaan mikrofoni", micChunks)], with: whisper, progress: progress)
-            return Transcript(utterances: Self.labelled(results[0], by: speakers, in: language))
+            var utterances = Self.labelled(results[0], by: speakers, in: language)
+            let note = room?.note(me: SpeakerLabels.me(in: language))
+            if let note { warning(note) }
+            if let own = room?.own {
+                utterances = SpeakerLabels.renamed(utterances, from: .speakerId(own), to: SpeakerLabels.me(in: language), in: language)
+            }
+            return Transcript(utterances: utterances, room: note)
         }
         if let mismatch = Self.lengthWarning(mic: micAudio.count, call: callAudio.count, span: span) {
             warning(mismatch)
@@ -133,9 +152,13 @@ public struct MeetingTranscriber {
     }
 
     static func turnStarts(of diarization: DiarizationResult) -> [Float] {
-        turnStarts(of: diarization.segments.compactMap { segment in
+        turnStarts(of: speech(of: diarization))
+    }
+
+    static func speech(of diarization: DiarizationResult) -> [(speaker: Int, start: Float, end: Float)] {
+        diarization.segments.compactMap { segment in
             segment.speaker.speakerId.map { (speaker: $0, start: segment.startTime, end: segment.endTime) }
-        })
+        }
     }
 
     /// Whisper names the language of each window as it transcribes it, so a meeting that switches

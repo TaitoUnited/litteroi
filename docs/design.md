@@ -65,6 +65,29 @@
   does not say whether `activeMicrophoneMode` or `preferredMicrophoneMode` follows the menu for
   such an app, so the app reads both and logs them.
 - In-person meetings use the mic track alone, split by speaker.
+- So does a meeting held in one room while a call runs on the Mac. On 23.11.2026 three people sat
+  around the user's MacBook with a colleague's laptop in the Meet call, the call track held sound
+  for 41 s of 1153 s, and the transcript put the whole room under the user's name, 16 minutes of
+  it as one line. When the call track holds sound for under a tenth of the recording,
+  `litteroi-cli` tells the mic's speakers apart, and when two or more of them speak for 30 s or
+  more each while the call is silent, it transcribes the mic track as recorded, split by speaker,
+  and leaves the call track and the echo canceller out. What the call played is then in the
+  transcript as the mic heard it from the speakers, and not at all with headphones. Of the 20
+  meetings with both tracks on that day, the call held sound for 4 % of that recording and for
+  18 % to 59 % of the others. One voice beside a quiet call, as when the user presents, stays a
+  call with the mic under the user's name. A room meeting with a call that talks for over a tenth
+  of it does too, and still puts the room under the user's name.
+- In a room meeting the user's first name goes to the voice whose median level on the mic is 6 dB
+  or more above every other voice's, since the user sits at the Mac: on 23.11.2026 the user's was
+  8 dB above the two others'. That is one meeting, so the transcript says under its title, and in
+  `room` of `transcript.json`, that it is a room meeting and how the name was given, and the skill
+  asks the user about that label like any other. With no voice that far above the rest, every
+  label is Puhuja and a number. Telling the user's voice from a profile kept across meetings would
+  be biometric data, as under Privacy.
+- Transcribed again on 23.11.2026, that meeting came out as 109 lines: 41 under the user's name,
+  the voice the minutes had named as the user's, 36 and 29 under the two colleagues' labels, 2
+  under a fourth label and 1 unknown. The numbers of this and of the page's audio are in
+  `~/Downloads/litteroi-test-audio/results/room-23-nov/results.txt`.
 
 ## Finishing with Claude
 
@@ -129,6 +152,10 @@
   user chose on 17.11.2026 over naming a label unasked once its tile is sure. The outline shows
   whose microphone carried the sound, so when the user sits muted beside a colleague, their own
   voice gets that colleague's tile, and only the user can tell that from the quoted lines.
+- In a room meeting the outline is no evidence of who spoke. On 23.11.2026 the one laptop in the
+  call heard the whole room, so Meet outlined its owner's tile for every voice, 100 % of the
+  outlined seconds of each label. The file is still written, since a tile of someone outside the
+  room would name a voice the mic heard from the speakers.
 - No session opened a frame for this. The colours and positions came from numbers a throwaway
   tool printed: runs of one colour, the boxes of name-shaped lines and the colours at given
   points.
@@ -142,7 +169,21 @@
   they were. The user opens it in Firefox, since Preview plays neither the CAF tracks nor a jump to
   a time. The tool mixes the tracks into `palaveri.m4a` (AAC) and copies each screen video as H.264
   `screen-<n>-<second>.mp4`, since Firefox may not play the recorder's HEVC; no session opens the
-  audio, the tool does the copying. Each question has a field for its answer, with none for
+  audio, the tool does the copying. The mix raises a faint mic: in the room meeting of 23.11.2026
+  the mic's speech sat at -58 to -68 dB on the page, against about -21 dB in earlier meetings, and
+  the user heard nothing. The tool takes the level of the mic track during the words the
+  transcript has from it, over the 3 s before and after each tenth of a second, and raises the
+  track there so that those words reach -22 dB, by 40 dB at most and never down, after a high-pass
+  at 80 Hz, which brought the three speakers' words to -22 to -26 dB and 104 of the 109 lines to
+  -35 dB or more. A stretch with no such words within a second is mixed as recorded, so the call's
+  echo on the mic is not raised between the user's lines, and so is a mic that is loud enough. The
+  mix is held under 0.95 of full scale by a limiter that looks 10 ms ahead. The gain follows the
+  transcript and not the level alone, because the level cannot tell the call's echo on the mic
+  from speech. Words under 12 dB above the track's hiss, its quietest tenth, set no gain and take
+  the lower of the gains around them, since Whisper makes up lines in a silence: in the meeting of
+  16.11.2026 at 15:00, 11 of the user's 16 lines sat at the hiss's level. AVFoundation's own mix,
+  used until then, has a volume per track but nothing that follows the speech. Each question has
+  a field for its answer, with none for
   glossary terms or other notes since the user asked them gone, and a button copies the answers as a prompt for the skill,
   numbered as the questions are. The page keeps them in Firefox's local storage meanwhile.
 - The page keeps the cursor in an answer from the first question to the last, since answering five

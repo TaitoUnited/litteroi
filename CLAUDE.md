@@ -40,6 +40,9 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   `transcript.md` and `transcript.json`. Without `--call` the mic track is split by speaker; with it
   the mic track carries the user's first name, from macOS, and only the call track is split. Given a
   meeting folder under `~/Litteroi` instead, it transcribes that meeting's tracks into the folder.
+  A meeting held in one room beside a call, whose call track holds sound for under a tenth of the
+  recording while two or more voices speak on the mic, is split from the mic track alone, and its
+  transcript says so under its title (docs/design.md).
 - Live: `litteroi-cli live [<meeting folder>]` transcribes the meeting being recorded, or the one
   given, into its `live.md` while the mic track grows, about half a minute behind and without
   speakers, prints each line too, and stops once the recording has. `--from <second>` picks up

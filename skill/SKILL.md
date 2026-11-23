@@ -53,6 +53,9 @@ The tool is `~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli`.
    ~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli transcribe-pending
    ```
 
+   A `Varoitus` line that starts `Huonepalaveri` means the meeting was held in one room beside a
+   call, as "Asking who spoke" says: name the meeting in the reply as one.
+
    A `Varoitus` line about the tracks' lengths names the track that is off, against how long the
    recording ran by the clock. A call track recorded at the wrong rate makes the call side likely
    nonsense: name the meeting and the lengths in the reply, and finish it only once the user has
@@ -144,23 +147,13 @@ file:///Users/<user>/Litteroi/<meeting>/palaveri.html
 ~/Applications/Litteroi.app/Contents/MacOS/litteroi-cli page ~/Litteroi/<meeting>
 ```
 
-Before a reply hands over a page, measure the loudness of a quoted line's stretch of
-`palaveri.m4a`, from its `data-t` to its `data-end` on the page. On 23.11.2026 three people sat
-around one MacBook, the call track held nothing after 1 min 53 s, and the mic heard the room so
-faintly that the page's speech measured -58 to -68 dB against about -21 dB in earlier meetings:
-the user heard nothing. When the mean is under -45 dB, keep a copy of `palaveri.m4a` in the
-work's drafts folder and mix it again with the mic raised, which gave -22 to -26 dB that day:
-
-```bash
-ffmpeg -hide_banner -nostats -ss <start> -to <end> -i ~/Litteroi/<meeting>/palaveri.m4a \
-  -af volumedetect -f null - 2>&1 | grep mean_volume
-```
-
-```bash
-(cd ~/Litteroi/<meeting> && ffmpeg -y -i mic.caf -i call.caf -filter_complex \
-  "[0:a]highpass=f=80,dynaudnorm=f=200:g=11:p=0.95:m=100,acompressor=threshold=-24dB:ratio=3:makeup=6dB[m];[1:a]dynaudnorm=f=250:g=15:p=0.9:m=10[c];[m][c]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.95[out]" \
-  -map "[out]" -c:a aac -b:a 64k -ar 16000 -ac 1 palaveri.m4a)
-```
+The tool mixes `palaveri.m4a` so that a faint mic is heard: it raises the mic track, by 40 dB at
+most, until the words the transcript has from it reach about -22 dB, and leaves a mic that is loud
+enough as recorded. On 23.11.2026 three people sat around one MacBook and the mic heard the room
+so faintly that the page's speech measured -58 to -68 dB: the user heard nothing, and the mix was
+raised by hand that day. No reply measures or mixes the audio by hand now. A page written before
+the build of 23.11.2026 keeps its old mix until its `palaveri.m4a` is deleted and the page written
+again.
 
 ## The meeting's name
 
@@ -197,6 +190,19 @@ Ask too about a name the transcript spells two ways or that Whisper may have mis
 confirm a guess, give a name, say two labels are one person, say a label mixes two people, call its
 lines unclear, which makes them `Epäselvä`, or say they do not know; a question the user cannot
 settle from the text is asked again with its context.
+
+A `transcript.md` whose first line under the title starts `Huonepalaveri:` is of a meeting held
+in one room while a call ran on the Mac, as on 23.11.2026, when three people sat around one
+MacBook and a colleague's laptop was in the call. The call track held sound for under a tenth of
+the recording, so the tool left it out and told the speakers apart on the mic track: every label
+is a voice in the room, or one the mic heard from the Mac's speakers. The line says how many
+voices there are and whether one got the user's first name: the voice that was 6 dB or more above
+the others on the mic, so most likely the one sitting at the Mac. That is a guess from one
+meeting, so ask about the user's own label too in such a meeting, with that as its guess, and
+when no voice got the name, ask which label is the user. The line itself stays out of
+`korjattu.md`, and the minutes say under `Puhujat` that the meeting was held in one room and that
+the speakers were told apart by voice from one mic, so a short line or one said over another may
+carry the wrong name.
 
 When the mic track holds no speech, or only what Whisper makes of silence, such as `you`, check
 the track before any reply or the minutes say why. A stretch in which every sample of `mic.caf`
@@ -268,6 +274,11 @@ videos that was transcribed before 17.11.2026 gets the file in a few seconds wit
   speak through one tile, or through none when both are muted. A short line said while someone
   else talks shows the tile of the one talking. The Mac never plays the user's own microphone, so
   the user's tile is left out for every label but their own.
+- In a room meeting, one whose `transcript.md` starts with a `Huonepalaveri:` line, the outline
+  is no evidence for anyone in the room. On 23.11.2026 the one laptop in the call heard all three
+  people, so every label had its owner's tile at 100 %. A question there gives no tile as a guess
+  or as what a guess rests on; only a tile of someone who was not in the room counts, for a voice
+  that came through the call.
 - The file knows only the time Meet's tiles were on the screen, which the outlined seconds show:
   while the user looked at another window there is nothing, and a tile whose name is hidden or cut
   short is left out. Teams, Signal and other call apps are not read, so for those, and for a label

@@ -22,6 +22,16 @@ enum SpeakerLabels {
         }
     }
 
+    /// The lines of one speaker under another label, as the user's own voice in a room meeting.
+    static func renamed(_ utterances: [Utterance], from speaker: SpeakerInfo, to label: String, in language: Language) -> [Utterance] {
+        let old = name(for: speaker, in: language)
+        return merged(utterances.map { utterance in
+            var utterance = utterance
+            if utterance.speaker == old { utterance.speaker = label }
+            return utterance
+        })
+    }
+
     static func utterances(from segments: [SpeakerSegment], in language: Language) -> [Utterance] {
         merged(segments.map {
             Utterance(speaker: name(for: $0.speaker, in: language), start: $0.startTime, end: $0.endTime, text: $0.text,
