@@ -406,8 +406,36 @@
   under one speaker. Told there were 2, it still switched speaker inside a sentence.
 - OpenWhispr took about a third less time (210 s against 320 s for the three clips), with its
   model already loaded. Speaker labels are what litteroi adds, so it stays.
-- Results are in `~/Downloads/litteroi-test-audio/results/compare-openwhispr/`. There is no
-  reference transcript, so the verdict on text is a reading, not an error rate.
+- The results were kept in `~/Downloads/litteroi-test-audio/results/compare-openwhispr/`, which
+  was gone by 2026-11-23. There is no reference transcript, so the verdict on text is a reading,
+  not an error rate.
+
+## Why not a browser's speech recognition
+
+- Browsers recognise speech through the Web Speech API. As of 2026-11-23 Chrome sends the audio to
+  Google's server (`www.google.com/speech-api/full-duplex/v1` in Chromium's
+  `network_speech_recognition_engine_impl.cc`), and Google does not name the model behind it. Its
+  on-device language packs (`components/soda/constants.h`) have no Finnish. Edge sends the audio
+  to Azure, Safari hands it to Apple's Speech framework, and Firefox 160 runs NVIDIA's Nemotron 3.5
+  ASR Streaming 0.6B on the device for Finnish.
+- On 2026-11-23, 50 sentences of the FLEURS Finnish test set, one recording of each, 11.2 minutes
+  and 821 words in all, went through `litteroi-cli transcribe` one clip at a time and through
+  Chrome 158, which a local page fed each clip as an audio track with the language `fi-FI`. Both
+  were scored against FLEURS' own transcription, lower-cased and without punctuation.
+- Whisper large-v3 got 6.5% of the words wrong (53 of 821) and Chrome 11.2% (92 of 821), and 1.5%
+  and 2.6% of the characters. Whisper made fewer errors on 26 clips and Chrome on 12, with 12
+  even. Chrome stayed 1.9 to 7.8 points above Whisper in 95% of 10,000 resamplings of the clips.
+  Whisper's 6.5% is near the 7.7% OpenAI's large-v3 chart gives for the whole FLEURS Finnish test.
+- Chrome misheard foreign names, such as Kirchner as "gidrichner", and some words, such as
+  "asioista" for "ansiosta", and wrote compounds apart, as "hong kongin". Whisper's errors were
+  mostly inflections, such as "taisteluiden" for "taistelujen".
+- Chrome recognises in real time: the clips took 13.3 minutes, with 2.5 s of waiting after each.
+  Its audio goes to Google, which the rule that audio never leaves the Mac forbids anyway.
+- Nemotron 3.5 ASR was not run. Its model card gives it 18.3% to 21.2% of the words wrong on FLEURS
+  Finnish, with chunks of 1.12 s down to 80 ms, against the 7.7% for large-v3.
+- FLEURS is read speech, so no meeting audio was compared. The clips, both transcripts, Chrome's
+  page, the scoring script and each clip's errors in `results.tsv` are in
+  `~/Downloads/litteroi-test-audio/results/compare-chrome/`.
 
 ## Distribution
 

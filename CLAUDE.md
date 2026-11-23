@@ -72,14 +72,16 @@ user who each speaker is, then writes the corrected transcript and the minutes.
   changes, so in a working checkout build and install by hand.
 - Models download on first run into `~/Library/Application Support/Litteroi/models`
   (Whisper large-v3 about 3.1 GB, SpeakerKit models about 33 MB).
-- Test audio lives outside the repo in `~/Downloads/litteroi-test-audio`: `podcasts/` (full
-  episodes), `clips/` (16 kHz mono cuts made with ffmpeg) and `results/`.
+- Test audio lives outside the repo in `~/Downloads/litteroi-test-audio/results/`, a folder per
+  comparison holding its clips and results.
 
 ## Rules
 
 - Keep `openai_whisper-large-v3`. Turbo, Parakeet v3 and Qwen3-ASR made more errors on Finnish in
-  the GAIK benchmark (github.com/GAIK-project/finnish-asr). Each window of speech is transcribed in
-  Finnish or English, whichever Whisper hears in it, so a meeting may switch between the two.
+  the GAIK benchmark (github.com/GAIK-project/finnish-asr). So did Chrome's speech recognition on
+  50 FLEURS Finnish sentences, and Nemotron 3.5 ASR by its model card (docs/design.md). Each
+  window of speech is transcribed in Finnish or English, whichever Whisper hears in it, so a
+  meeting may switch between the two.
   Whisper names a window's language from how it starts, so windows are cut at speaker turns.
 - Audio and screen videos never leave the Mac, and the app and `litteroi-cli` call no cloud API.
   Text reaches Claude only through the skill: a meeting's transcript, names included, the names
