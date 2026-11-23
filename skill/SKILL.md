@@ -155,9 +155,9 @@ the project's copy show.
 
 Write a short name into the meeting's `lyhenne.txt` too, which names the PDF to share: the kind
 of meeting in a word, then a word or two for the meeting, such as `daily sis-meks`, which gives
-`daily-mon-9-nov-2026-sis-meks-transcription.pdf`. The kind is what the user calls the meeting,
-which can differ from the event's title: the user calls the Monday "Sisäinen: Meks weekly" a
-daily. Take both from the project's memory when it names them for the series; otherwise pick them,
+`daily-fri-20-nov-2026-sis-meks-transcription.pdf`. The kind is what the user calls the meeting,
+which can differ from the event's title: the user calls the Monday "Sisäinen: Meks status" a
+weekly. Take both from the project's memory when it names them for the series; otherwise pick them,
 and when unsure ask in step 4 with the pick as the recommended answer. Two meetings of one day get
 short names that differ, so neither PDF replaces the other.
 
@@ -375,7 +375,7 @@ into `~/Downloads/litteroi/` and whose path it prints:
   ~/Litteroi/<meeting> ~/Downloads/litteroi
 ```
 
-The PDF is A4, named from `lyhenne.txt` such as `daily-mon-9-nov-2026-sis-meks-transcription.pdf`,
+The PDF is A4, named from `lyhenne.txt` such as `daily-fri-20-nov-2026-sis-meks-transcription.pdf`,
 and holds the title, a
 note that a machine transcribed the recording and Claude corrected it for reading, the whole of
 `muistio.md` and every line with its time; without `--minutes` it holds only the speakers of
