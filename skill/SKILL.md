@@ -428,6 +428,9 @@ The place is the one the project's memory names for the meeting, such as its not
 Without one, search Slack, private channels and DMs included, for where the attendees talk, such
 as a thread where the organiser posted minutes, ask in the reply with a recommended answer, and
 write the answer into the project's memory, so the next meeting of the series goes there too.
+When the user answers that the series is shared nowhere, as for one client project's meetings on
+24.11.2026, the memory says so, and a meeting of that series ends at the project's copy, which
+keeps it as context: no PDF, no draft, and the reply asks nothing about a share.
 
 Draft it with the `slack-draft` skill, in the place's language and register. Lines of words
 alone need no clipboard, so the reply gives them in a `text` block. Litteroi tells no one else in
