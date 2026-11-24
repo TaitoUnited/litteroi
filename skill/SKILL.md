@@ -186,7 +186,13 @@ order the meeting reached them: by the time of each question's earliest line, qu
 the page reads from the start of the meeting to its end. A question asked again is numbered anew
 with the rest. Each page copies its own prompt, which names its folder, and in the chat the
 questions stand under each meeting's folder name, so a number need not be unique across meetings.
-Ask too about a name the transcript spells two ways or that Whisper may have misheard. The user may
+Ask too about a name the transcript spells two ways or that Whisper may have misheard. Before
+`korjattu.md` is written, each such name or term, such as a company, a product or a place, is
+searched on the web as well as in the project's Slack, mail and repository, and `korjattu.md`
+takes the spelling a source gives. A question is asked only about what the search leaves open,
+with the spelling found as its guess and the source on its line. On 24.11.2026 a question asked
+how to spell the company Whisper heard as AdaFi, which a web search finds as Adafy Oy, and the
+user answered "ens kerralla web searchaa claude litteroinnin aikana tollaset". The user may
 confirm a guess, give a name, say two labels are one person, say a label mixes two people, call its
 lines unclear, which makes them `Epäselvä`, or say they do not know; a question the user cannot
 settle from the text is asked again with its context.
