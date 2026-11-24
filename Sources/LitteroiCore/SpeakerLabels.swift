@@ -53,6 +53,31 @@ enum SpeakerLabels {
         }
     }
 
+    /// Cuts each utterance at the first sentence end after a line of the other track starts inside
+    /// it. A call with one speaker is otherwise one utterance from its first turn to its last, and
+    /// every line of the user's own sorts after its start and merges into one line too.
+    static func split(_ utterances: [Utterance], at starts: [Float]) -> [Utterance] {
+        utterances.flatMap { utterance -> [Utterance] in
+            guard let words = utterance.words, words.count > 1 else { return [utterance] }
+            let cuts = Set(starts.filter { $0 > utterance.start && $0 < utterance.end }.compactMap { start in
+                words.indices.dropFirst().first { words[$0].start >= start && endsSentence(words[$0 - 1].text) }
+            }).sorted()
+            guard !cuts.isEmpty else { return [utterance] }
+            let bounds = [0] + cuts + [words.count]
+            return zip(bounds, bounds.dropFirst()).map { from, to in
+                let part = Array(words[from..<to])
+                return Utterance(speaker: utterance.speaker,
+                                 start: from == 0 ? utterance.start : part.map(\.start).min()!,
+                                 end: to == words.count ? utterance.end : part.map(\.end).max()!,
+                                 text: part.map(\.text).joined(separator: " "), words: part)
+            }
+        }
+    }
+
+    private static func endsSentence(_ word: String) -> Bool {
+        word.last.map { ".?!…".contains($0) } ?? false
+    }
+
     /// Joins consecutive pieces from the same speaker into one utterance and drops empty ones.
     static func merged(_ pieces: [Utterance]) -> [Utterance] {
         var result: [Utterance] = []

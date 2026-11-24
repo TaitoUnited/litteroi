@@ -65,6 +65,21 @@ import WhisperKit
     ])
 }
 
+@Test func cutsALongLineAtTheSentenceWhereTheOtherTrackSpeaks() {
+    let words = [
+        Word(start: 0, end: 1, text: "Tää"), Word(start: 1, end: 2, text: "on"), Word(start: 2, end: 3, text: "eka."),
+        Word(start: 3, end: 4, text: "Sit"), Word(start: 4, end: 5, text: "toka."), Word(start: 6, end: 7, text: "Kolmas."),
+    ]
+    let long = Utterance(speaker: "Puhuja 1", start: 0, end: 7, text: "Tää on eka. Sit toka. Kolmas.", words: words)
+    #expect(SpeakerLabels.split([long], at: [0, 1.5, 9]).map(\.text) == ["Tää on eka.", "Sit toka. Kolmas."])
+    #expect(SpeakerLabels.split([long], at: [8]) == [long])
+    let call = SpeakerLabels.split([long], at: [3.5])
+    #expect(call.map(\.start) == [0, 6])
+    let mine = [Utterance(speaker: "Akira", start: 3.5, end: 4, text: "Joo.")]
+    #expect(SpeakerLabels.merged((mine + call).sorted { $0.start < $1.start }).map(\.text)
+        == ["Tää on eka. Sit toka.", "Joo.", "Kolmas."])
+}
+
 @Test func joinsTheWordsOfMergedPieces() {
     let pieces = [
         Utterance(speaker: "Puhuja 1", start: 0, end: 2, text: "Hei", words: [Word(start: 0, end: 1, text: "Hei")]),

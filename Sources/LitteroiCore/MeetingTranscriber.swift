@@ -72,8 +72,9 @@ public struct MeetingTranscriber {
             with: whisper,
             progress: progress
         )
-        let theirs = Self.labelled(results[1], by: speakers, in: language)
-        let mine = EchoCanceller.droppingEcho(SpeakerLabels.ownPieces(from: results[0], in: language), heardIn: theirs)
+        let pieces = SpeakerLabels.ownPieces(from: results[0], in: language)
+        let theirs = SpeakerLabels.split(Self.labelled(results[1], by: speakers, in: language), at: pieces.map(\.start))
+        let mine = SpeakerLabels.split(EchoCanceller.droppingEcho(pieces, heardIn: theirs), at: theirs.map(\.start))
         return Transcript(utterances: SpeakerLabels.merged((mine + theirs).sorted { $0.start < $1.start }))
     }
 

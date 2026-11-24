@@ -49,6 +49,13 @@
   echo canceller (vendored, BSD) subtracts the call from the mic. A line of the user's whose words
   mostly repeat a call line at the same time is dropped as leftover echo. With headphones no
   delay stands out and the mic track is used as recorded. `mic.caf` itself is never changed.
+- The call track is cut where its speaker changes, so a call with one other person was one line
+  from their first turn to their last, and every line of the user's sorted after its start and
+  merged into one line too: the briefing of 24.11.2026, one colleague in Meet, came out as 8
+  lines, two of them 13 minutes long, and the echo check, which held each line of the user's
+  against all 13 minutes, dropped four of them. A line of either track is now cut at the first
+  sentence end after a line of the other track starts inside it, before the echo check. Transcribed
+  again, that meeting came out as 97 lines in the order they were said, with those four back.
 - Apple's voice processing on the mic would cancel echo while recording, but it is not known to
   cancel what other apps play, may turn their sound down during the call, and would change the
   recording for good.
